@@ -120,7 +120,7 @@ const Town = (() => {
   function clue(entId){
     const c = CASES[T.ci], d = c.entClues[entId], v = T.cs.v, type = typeof d.type === 'object' ? d.type[v] : d.type;
     const fresh = addClue(type, d[v], entId);
-    Game.say([['sys', d[v]], ['sys', fresh ? `找到「${TYPE_NAME[type]}」線索。` : '這個線索已經記下來了。']]);
+    Game.say([['sys', d[v], clueNote(type, fresh)]]);
   }
   function finishCase(){
     const c = CASES[T.ci];

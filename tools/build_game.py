@@ -1,4 +1,4 @@
-"""組出完整遊戲：python3 tools/build_game.py 情緒偵探社_v7.html
+"""組出完整遊戲：python3 tools/build_game.py 情緒偵探社_v8.html
 頁面外殼 src/parts/head.html
 闖關引擎 src/parts/stage.js（讀 STAGE、LEVEL，換章時由 loadChapter 指定）
 共用內容 src/parts/content.js

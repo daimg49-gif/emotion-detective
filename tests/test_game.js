@@ -65,7 +65,11 @@ async function run(browser, ch, vp, variant){
     } else await walk(p.x, p.y);
     await page.waitForSelector('#panel.on');
     ok(`${tag} 委託 ${i+1} 沒線索時不能判斷`, await page.locator('#pBtns button', {hasText:'說出他的情緒'}).isDisabled());
-    await clickBtn('看他的表情'); await advance(); await clickBtn('看他的動作'); await advance();
+    await clickBtn('看他的表情');
+    const one = await ev(() => { const n = document.querySelector('#dtext .note'); return n ? n.textContent : ''; });
+    await page.click('#dbox');
+    ok(`${tag} 委託 ${i+1} 線索和「找到線索」在同一個對話框，點一次就關`, /找到「表情」線索/.test(one) && !(await page.isVisible('#dlg')), one);
+    await advance(); await clickBtn('看他的動作'); await advance();
     await clickBtn('跟他說話'); await advance();
     await clickBtn('先離開');
     if (k === 0) await page.screenshot({path:`${out}/ch${ch}-${variant}-case${i+1}.png`});
@@ -127,6 +131,8 @@ async function runShort(browser){
   const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message));
   await page.goto('file://' + file);
   const {ev, advance, walk, clickBtn} = helpers(page);
+  ok('開始畫面 拿掉「莒光資優班・認識情緒」', !(await page.textContent('#titleScr')).includes('莒光資優班'));
+  ok('開始畫面 署名改成 Peiching', (await page.textContent('.credit')) === '本遊戲由Peiching開發，角色與情境均為虛構');
   await page.click('#startBtn');
   const chTxt = await page.textContent('#chList');
   ok('章節卡不寫情緒名稱', !BASE.some(w => chTxt.includes(w)), chTxt.replace(/\s+/g,' ').slice(0, 80));
@@ -158,6 +164,9 @@ async function runShort(browser){
     return {lit:G.S.lit, walls:G.S.walls.map(w => w.state)}; }, skills);
   let st = await stageWith(['breath','angle']);
   ok('第三章闖關 沒學「說出來」時暗區直接亮', st.lit === true);
+  const shown = await ev(() => [...document.querySelectorAll('.sk')].filter(b => !b.hidden).map(b => b.dataset.k).join());
+  ok('第三章闖關 沒學會的招不出現，只看得到深呼吸和換個角度', shown === 'breath,angle', shown);
+  ok('第三章闖關 開場提示說還有 2 招沒找到', /還有 2 招沒在委託裡找到/.test(await page.textContent('#toast')));
   ok('第三章闖關 學了「換個角度」挫折怪還在', st.walls.every(x => x === 'shut'));
   st = await stageWith(['breath','pause']);
   ok('第三章闖關 沒學「換個角度」時橋直接搭好', st.walls.every(x => x === 'open') && await ev(() => window.__GAME.solid(68, 14)));

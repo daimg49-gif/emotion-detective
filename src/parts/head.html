@@ -82,7 +82,6 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 .sk{touch-action:none;position:relative;width:88px;height:62px;border-radius:10px;border:3px solid var(--mist);background:rgba(43,45,66,.86);font:700 16px var(--f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden}
 .sk i{font-style:normal;font-size:20px;line-height:1}
 .sk .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);height:0}
-.sk.locked{opacity:.3}
 .tb{min-width:112px;height:64px;border-radius:10px;border:3px solid var(--mist);background:var(--panel);font:700 18px var(--f);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px}
 .tb b{color:var(--yellow);font-variant-numeric:tabular-nums}
 
@@ -98,6 +97,9 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 #dname.inner{color:var(--sky)}
 #dtext{font-size:21px;line-height:1.65;margin-top:4px;min-height:3.3em}
 #dtext.sys{color:#c9cfdc;font-size:19px}
+/* 對話第二行：找到線索的提示，用較淡的顏色和線索本文分開 */
+#dtext .note{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed #4a4d68;font-size:16px;line-height:1.4;color:var(--yellow)}
+#dtext .note.old{color:var(--mist)}
 .dnext{text-align:right;font-size:13px;color:var(--mist);margin-top:2px}
 
 /* 面板 */
@@ -145,13 +147,12 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 /* 開始畫面 */
 #titleScr{background:var(--ink) center/cover no-repeat;align-items:flex-start;padding-top:6vh;z-index:9}
 .tcard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
-.eyebrow{margin:0;font-size:16px;letter-spacing:.2em;background:rgba(43,45,66,.7);padding:4px 12px;border-radius:4px}
 .gname{margin:0;font-size:clamp(44px,9vw,84px);font-weight:900;color:var(--yellow);letter-spacing:.08em;
   text-shadow:4px 4px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .gsub{margin:0;font-size:22px;font-weight:700;text-shadow:2px 2px 0 var(--ink)}
 #startBtn{margin-top:14px;min-height:60px;padding:0 40px;font:700 24px var(--f);border-radius:12px;border:4px solid var(--ink);background:var(--yellow);color:var(--ink);box-shadow:0 5px 0 var(--ink)}
 .keys{margin:8px 0 0;font-size:15px;background:rgba(43,45,66,.75);padding:4px 12px;border-radius:6px;text-align:center}
-.credit{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--paper);text-shadow:1px 1px 0 var(--ink)}
+.credit{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);margin:0;max-width:92vw;text-align:center;font-size:14px;color:var(--paper);background:rgba(43,45,66,.75);padding:4px 12px;border-radius:6px}
 
 #err{position:fixed;left:8px;bottom:4px;font-size:12px;color:var(--red);z-index:30}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -187,13 +188,12 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 
 <div class="ov on" id="titleScr">
   <div class="tcard">
-    <p class="eyebrow">莒光資優班・認識情緒</p>
     <h1 class="gname">情緒偵探社</h1>
     <p class="gsub">找線索，說出看不見的心情</p>
     <button id="startBtn">開始</button>
     <p class="keys">平板、手機直接點；電腦也可以用方向鍵、空白鍵，數字鍵 1～4 是技能</p>
   </div>
-  <p class="credit">角色與情境均為虛構，遊戲不記錄任何學生資料</p>
+  <p class="credit">本遊戲由Peiching開發，角色與情境均為虛構</p>
 </div>
 
 <div class="ov" id="paused"><div class="card">

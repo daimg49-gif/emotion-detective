@@ -5,7 +5,8 @@ const $ = s => document.querySelector(s);
 let toastT = null;
 function toast(msg, ms){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2200); }
 function updateBar(){ if (S) $('#barFill').style.width = S.bar + '%'; }
-function refreshSkills(){ if (!STAGE) return; document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k, d = skillDef(k); if (!d) return; b.classList.toggle('locked', !Game.skills.has(k)); b.querySelector('.cd').style.height = (S && S.cd[k] ? S.cd[k] / d.cd * 100 : 0) + '%'; }); }
+// 沒在委託裡學會的招，闖關時不出現（b.hidden）
+function refreshSkills(){ if (!STAGE) return; document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k, d = skillDef(k); if (!d) return; b.hidden = !Game.skills.has(k); b.querySelector('.cd').style.height = (S && S.cd[k] ? S.cd[k] / d.cd * 100 : 0) + '%'; }); }
 // 技能按鈕依這一章的 STAGE.skills 產生
 function buildSkills(){
   const box = $('#skills');
@@ -13,6 +14,8 @@ function buildSkills(){
   box.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); useSkill(b.dataset.k); }));
   refreshSkills();
 }
+// 找到線索的小字：新線索亮黃色，已經記過的灰色
+const clueNote = (type, fresh) => fresh ? {t:`🔍 找到「${TYPE_NAME[type]}」線索`} : {t:'這個線索已經記下來了', old:true};
 const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 
@@ -32,11 +35,12 @@ const Game = {
       const T = Town.T; if (T && !$('#panel').classList.contains('on')) T.busy = false;
       if (d.done) d.done(); return;
     }
-    const [who, text] = d.lines.shift();
+    const [who, text, note] = d.lines.shift(); // note：第二行小字，例如「找到表情線索」
     const n = $('#dname'), t = $('#dtext');
     n.className = who === 'in' ? 'inner' : ''; t.className = who === 'sys' ? 'sys' : '';
     n.textContent = who === 'sys' ? '' : who === 'in' ? '我的內心' : NAMES[who] || who;
     t.textContent = text;
+    if (note){ const s = document.createElement('span'); s.className = 'note' + (note.old ? ' old' : ''); s.textContent = note.t; t.appendChild(s); }
   },
 
   /* ----- 面板 ----- */
@@ -100,7 +104,7 @@ const Game = {
       return;
     }
     const look = (type, txt, line) => () => { this.closePanel(); const fresh = Town.addClue(type, txt);
-      this.say([line || ['sys', txt], ['sys', fresh ? `找到「${TYPE_NAME[type]}」線索。` : '這個線索已經記下來了。']], back); };
+      this.say([(line || ['sys', txt]).concat([clueNote(type, fresh)])], back); };
     const talk = c.npcClues.talk[v];
     this.panel(who, `<p class="hint">已找到 ${n}/4 種線索</p>` + list, [
       {t:'看他的表情', cls:cs.found.face ? 'got' : '', fn:look('face', c.npcClues.face[v])},
@@ -186,7 +190,8 @@ const Game = {
     if (LEVEL.dark && !this.skills.has(LEVEL.dark.by)){ S.lit = true; S.litR = 1; }
     S.walls.forEach(w => { if (!this.skills.has(STAGE.wallTypes[w.type].openBy)){ w.state = 'open'; w.k = 1; setWall(w, false); openDone(w); } });
     refreshSkills();
-    toast(CH.stageToast, 2600);
+    const miss = STAGE.skills.filter(s => !this.skills.has(s.k)).length;
+    toast(miss ? `${CH.stageToast}這次帶了 ${STAGE.skills.length - miss} 招，還有 ${miss} 招沒在委託裡找到。` : CH.stageToast, 3200);
   },
   stageWon(stats){
     this.stageStats = stats; const T = Town.T;
@@ -311,7 +316,7 @@ addEventListener('keydown', e => {
   if (Game.mode !== 'stage') return;
   if (KEYS[e.key]) input[KEYS[e.key]] = true;
   if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !e.repeat){ input.jump = true; input.jumpPressed = true; }
-  const sk = STAGE && STAGE.skills[+e.key - 1]; if (sk) useSkill(sk.k);
+  const sk = STAGE && STAGE.skills.filter(s => Game.skills.has(s.k))[+e.key - 1]; if (sk) useSkill(sk.k); // 數字鍵對應畫面上看得到的招
 });
 addEventListener('keyup', e => { if (KEYS[e.key]) input[KEYS[e.key]] = false; if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') input.jump = false; });
 function togglePause(force){

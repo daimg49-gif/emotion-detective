@@ -82,7 +82,6 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 .sk{touch-action:none;position:relative;width:88px;height:62px;border-radius:10px;border:3px solid var(--mist);background:rgba(43,45,66,.86);font:700 16px var(--f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden}
 .sk i{font-style:normal;font-size:20px;line-height:1}
 .sk .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);height:0}
-.sk.locked{opacity:.3}
 .tb{min-width:112px;height:64px;border-radius:10px;border:3px solid var(--mist);background:var(--panel);font:700 18px var(--f);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px}
 .tb b{color:var(--yellow);font-variant-numeric:tabular-nums}
 
@@ -98,6 +97,9 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 #dname.inner{color:var(--sky)}
 #dtext{font-size:21px;line-height:1.65;margin-top:4px;min-height:3.3em}
 #dtext.sys{color:#c9cfdc;font-size:19px}
+/* 對話第二行：找到線索的提示，用較淡的顏色和線索本文分開 */
+#dtext .note{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed #4a4d68;font-size:16px;line-height:1.4;color:var(--yellow)}
+#dtext .note.old{color:var(--mist)}
 .dnext{text-align:right;font-size:13px;color:var(--mist);margin-top:2px}
 
 /* 面板 */
@@ -145,13 +147,12 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 /* 開始畫面 */
 #titleScr{background:var(--ink) center/cover no-repeat;align-items:flex-start;padding-top:6vh;z-index:9}
 .tcard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
-.eyebrow{margin:0;font-size:16px;letter-spacing:.2em;background:rgba(43,45,66,.7);padding:4px 12px;border-radius:4px}
 .gname{margin:0;font-size:clamp(44px,9vw,84px);font-weight:900;color:var(--yellow);letter-spacing:.08em;
   text-shadow:4px 4px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .gsub{margin:0;font-size:22px;font-weight:700;text-shadow:2px 2px 0 var(--ink)}
 #startBtn{margin-top:14px;min-height:60px;padding:0 40px;font:700 24px var(--f);border-radius:12px;border:4px solid var(--ink);background:var(--yellow);color:var(--ink);box-shadow:0 5px 0 var(--ink)}
 .keys{margin:8px 0 0;font-size:15px;background:rgba(43,45,66,.75);padding:4px 12px;border-radius:6px;text-align:center}
-.credit{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--paper);text-shadow:1px 1px 0 var(--ink)}
+.credit{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);margin:0;max-width:92vw;text-align:center;font-size:14px;color:var(--paper);background:rgba(43,45,66,.75);padding:4px 12px;border-radius:6px}
 
 #err{position:fixed;left:8px;bottom:4px;font-size:12px;color:var(--red);z-index:30}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -187,13 +188,12 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 
 <div class="ov on" id="titleScr">
   <div class="tcard">
-    <p class="eyebrow">莒光資優班・認識情緒</p>
     <h1 class="gname">情緒偵探社</h1>
     <p class="gsub">找線索，說出看不見的心情</p>
     <button id="startBtn">開始</button>
     <p class="keys">平板、手機直接點；電腦也可以用方向鍵、空白鍵，數字鍵 1～4 是技能</p>
   </div>
-  <p class="credit">角色與情境均為虛構，遊戲不記錄任何學生資料</p>
+  <p class="credit">本遊戲由Peiching開發，角色與情境均為虛構</p>
 </div>
 
 <div class="ov" id="paused"><div class="card">
@@ -1799,7 +1799,7 @@ const Town = (() => {
   function clue(entId){
     const c = CASES[T.ci], d = c.entClues[entId], v = T.cs.v, type = typeof d.type === 'object' ? d.type[v] : d.type;
     const fresh = addClue(type, d[v], entId);
-    Game.say([['sys', d[v]], ['sys', fresh ? `找到「${TYPE_NAME[type]}」線索。` : '這個線索已經記下來了。']]);
+    Game.say([['sys', d[v], clueNote(type, fresh)]]);
   }
   function finishCase(){
     const c = CASES[T.ci];
@@ -1966,7 +1966,8 @@ const $ = s => document.querySelector(s);
 let toastT = null;
 function toast(msg, ms){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2200); }
 function updateBar(){ if (S) $('#barFill').style.width = S.bar + '%'; }
-function refreshSkills(){ if (!STAGE) return; document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k, d = skillDef(k); if (!d) return; b.classList.toggle('locked', !Game.skills.has(k)); b.querySelector('.cd').style.height = (S && S.cd[k] ? S.cd[k] / d.cd * 100 : 0) + '%'; }); }
+// 沒在委託裡學會的招，闖關時不出現（b.hidden）
+function refreshSkills(){ if (!STAGE) return; document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k, d = skillDef(k); if (!d) return; b.hidden = !Game.skills.has(k); b.querySelector('.cd').style.height = (S && S.cd[k] ? S.cd[k] / d.cd * 100 : 0) + '%'; }); }
 // 技能按鈕依這一章的 STAGE.skills 產生
 function buildSkills(){
   const box = $('#skills');
@@ -1974,6 +1975,8 @@ function buildSkills(){
   box.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); useSkill(b.dataset.k); }));
   refreshSkills();
 }
+// 找到線索的小字：新線索亮黃色，已經記過的灰色
+const clueNote = (type, fresh) => fresh ? {t:`🔍 找到「${TYPE_NAME[type]}」線索`} : {t:'這個線索已經記下來了', old:true};
 const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 
@@ -1993,11 +1996,12 @@ const Game = {
       const T = Town.T; if (T && !$('#panel').classList.contains('on')) T.busy = false;
       if (d.done) d.done(); return;
     }
-    const [who, text] = d.lines.shift();
+    const [who, text, note] = d.lines.shift(); // note：第二行小字，例如「找到表情線索」
     const n = $('#dname'), t = $('#dtext');
     n.className = who === 'in' ? 'inner' : ''; t.className = who === 'sys' ? 'sys' : '';
     n.textContent = who === 'sys' ? '' : who === 'in' ? '我的內心' : NAMES[who] || who;
     t.textContent = text;
+    if (note){ const s = document.createElement('span'); s.className = 'note' + (note.old ? ' old' : ''); s.textContent = note.t; t.appendChild(s); }
   },
 
   /* ----- 面板 ----- */
@@ -2061,7 +2065,7 @@ const Game = {
       return;
     }
     const look = (type, txt, line) => () => { this.closePanel(); const fresh = Town.addClue(type, txt);
-      this.say([line || ['sys', txt], ['sys', fresh ? `找到「${TYPE_NAME[type]}」線索。` : '這個線索已經記下來了。']], back); };
+      this.say([(line || ['sys', txt]).concat([clueNote(type, fresh)])], back); };
     const talk = c.npcClues.talk[v];
     this.panel(who, `<p class="hint">已找到 ${n}/4 種線索</p>` + list, [
       {t:'看他的表情', cls:cs.found.face ? 'got' : '', fn:look('face', c.npcClues.face[v])},
@@ -2147,7 +2151,8 @@ const Game = {
     if (LEVEL.dark && !this.skills.has(LEVEL.dark.by)){ S.lit = true; S.litR = 1; }
     S.walls.forEach(w => { if (!this.skills.has(STAGE.wallTypes[w.type].openBy)){ w.state = 'open'; w.k = 1; setWall(w, false); openDone(w); } });
     refreshSkills();
-    toast(CH.stageToast, 2600);
+    const miss = STAGE.skills.filter(s => !this.skills.has(s.k)).length;
+    toast(miss ? `${CH.stageToast}這次帶了 ${STAGE.skills.length - miss} 招，還有 ${miss} 招沒在委託裡找到。` : CH.stageToast, 3200);
   },
   stageWon(stats){
     this.stageStats = stats; const T = Town.T;
@@ -2272,7 +2277,7 @@ addEventListener('keydown', e => {
   if (Game.mode !== 'stage') return;
   if (KEYS[e.key]) input[KEYS[e.key]] = true;
   if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !e.repeat){ input.jump = true; input.jumpPressed = true; }
-  const sk = STAGE && STAGE.skills[+e.key - 1]; if (sk) useSkill(sk.k);
+  const sk = STAGE && STAGE.skills.filter(s => Game.skills.has(s.k))[+e.key - 1]; if (sk) useSkill(sk.k); // 數字鍵對應畫面上看得到的招
 });
 addEventListener('keyup', e => { if (KEYS[e.key]) input[KEYS[e.key]] = false; if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') input.jump = false; });
 function togglePause(force){
