@@ -42,6 +42,10 @@ const file = process.argv[2], out = process.argv[3];
     ok(`${vp.name} 挫折怪都變成橋`, r.fr.every(x => x === 'bridge'), r.fr.join(','));
     await page.waitForTimeout(800);
     await page.screenshot({path:`${out}/${vp.name}-win.png`});
+    // 站著不動不能抖：連續 120 格都在地上、高度不變
+    const idle = await page.evaluate(() => { const G = window.__GAME; Object.assign(G.input, {left:false,right:false,jump:false,jumpPressed:false}); G.start(); G.step(30); const S = G.S; const ys = new Set(); let air = 0;
+      for (let i = 0; i < 120; i++){ G.step(1); ys.add(Math.round(S.p.y)); if (!S.p.ground) air++; } return {ys:[...ys], air}; });
+    ok(`${vp.name} 站著不動不會抖`, idle.ys.length === 1 && idle.air === 0, JSON.stringify(idle));
     // 機制檢查
     const m = await page.evaluate(() => {
       const G = window.__GAME; G.start(); const S = G.S, out = {};

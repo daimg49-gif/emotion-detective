@@ -9,7 +9,7 @@
 
 | 路徑 | 內容 |
 |---|---|
-| `prototype/stage_v2.html` | 終章闖關原型（單一 HTML，直接用瀏覽器打開就能玩） |
+| `prototype/stage_v3.html` | 終章闖關原型（單一 HTML，直接用瀏覽器打開就能玩） |
 | `tests/test_stage.js` | 自動測試：三種螢幕尺寸通關、技能機制、無 JS 錯誤 |
 | `tests/test_bypass.js` | 檢查不用技能能不能硬闖過去 |
 | `assets/raw/` | ChatGPT 生的原始圖（主視覺、生氣怪、挫折怪、闖關背景），Claude 處理後放進遊戲 |
@@ -25,7 +25,8 @@
 5. 暗區沒「說出來」會掉下去，並提示「把感覺說出來」
 6. 用錯技能有對應提示
 7. 情緒條滿了回到最近的旗子，情緒條回到 30
+8. 站著不動時角色不抖動（連續 120 格都在地上）
 
-執行：`NODE_PATH=$(npm root -g) node tests/test_stage.js $PWD/prototype/stage_v2.html /tmp`
+執行：`NODE_PATH=$(npm root -g) node tests/test_stage.js $PWD/prototype/stage_v3.html /tmp`
 
 所有角色、情境都是虛構的，遊戲不記錄任何學生資料。

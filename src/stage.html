@@ -278,7 +278,7 @@ function moveBody(b, dt){
   }
   // Y
   b.y += b.vy * dt; b.ground = false;
-  x0 = Math.floor(b.x/TS); x1 = Math.floor((b.x+b.w-1)/TS); y0 = Math.floor(b.y/TS); y1 = Math.floor((b.y+b.h-1)/TS);
+  x0 = Math.floor(b.x/TS); x1 = Math.floor((b.x+b.w-1)/TS); y0 = Math.floor(b.y/TS); y1 = Math.floor((b.y+b.h-.01)/TS); // 用腳底實際位置判斷，避免站著時每幾格就離地一次
   for (let tx = x0; tx <= x1; tx++){
     if (b.vy > 0 && solid(tx, y1)){ b.y = y1*TS - b.h; b.vy = 0; b.ground = true; break; }
     if (b.vy < 0 && solid(tx, y0)){ b.y = (y0+1)*TS; b.vy = 0; break; }
