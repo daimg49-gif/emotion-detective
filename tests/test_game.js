@@ -27,7 +27,7 @@ async function run(browser, vp, variant){
   ok(`${tag} 學會深呼吸`, await ev(() => window.__GAME.Game.skills.has('breath')));
   await page.screenshot({path:`${out}/${tag}-office.png`});
   await walk(11, 8); await page.waitForSelector('#panel.on'); await clickBtn('接下委託');
-  const cases = await ev(() => window.__GAME.CASES.map(c => ({npc:c.npc, pos:c.pos, ents:Object.keys(c.entClues), wrongWord:Object.keys(c.wrong)[0], best:c.best, level:c.level, extras:c.extras})));
+  const cases = await ev(() => window.__GAME.CASES.map(c => ({npc:c.npc, pos:c.pos, ents:Object.keys(c.entClues), wrongWord:Object.keys(c.wrong)[0], best:c.best, ok:c.ok, level:c.level, extras:c.extras, evidence:c.evidence})));
   for (let i = 0; i < 3; i++){
     const c = cases[i], p = c.pos[variant];
     ok(`${tag} 委託 ${i+1} 開始`, await ev(() => window.__GAME.Town.T.ci) === i);
@@ -56,10 +56,23 @@ async function run(browser, vp, variant){
     const wrongW = c.wrongWord && !['生氣'].includes(c.wrongWord) ? c.wrongWord : '開心';
     await page.click(`#pBody [data-w="${wrongW}"]`); await page.click('#pBody [data-l="3"]'); await clickBtn('確定'); await advance();
     ok(`${tag} 委託 ${i+1} 說錯會回到調查`, await page.isVisible('#panel.on') && !(await ev(() => window.__GAME.Town.T.cs.named)));
+    // 選「方向對但不夠細」的詞（例如生氣）不能結案
+    await clickBtn('說出他的情緒');
+    await page.click(`#pBody [data-w="${c.ok[variant][0]}"]`); await page.click('#pBody [data-l="3"]'); await clickBtn('確定'); await advance();
+    ok(`${tag} 委託 ${i+1} 只說「${c.ok[variant][0]}」不能結案`, await page.isVisible('#panel.on') && !(await ev(() => window.__GAME.Town.T.cs.named)));
     await clickBtn('說出他的情緒');
     await page.click(`#pBody [data-w="${c.best[variant][0]}"]`); await page.click(`#pBody [data-l="${c.level[variant]}"]`);
     if (i === 2) await page.screenshot({path:`${out}/${tag}-name.png`});
     await clickBtn('確定'); await advance();
+    // 證據：先挑一條不對的，再挑對的
+    await page.waitForSelector('#panel.on');
+    const evi = await ev(ok => { const cs = window.__GAME.Town.T.cs; const keys = cs.clues.map(k => k.key);
+      return {bad: keys.findIndex(k => !ok.includes(k)), good: keys.findIndex(k => ok.includes(k))}; }, c.evidence[variant]);
+    ok(`${tag} 委託 ${i+1} 線索本裡有可用的證據`, evi.good >= 0, JSON.stringify(evi));
+    if (i === 0) await page.screenshot({path:`${out}/${tag}-evidence.png`});
+    if (evi.bad >= 0){ await page.click(`#pBody [data-e="${evi.bad}"]`); await advance();
+      ok(`${tag} 委託 ${i+1} 證據挑錯會重挑`, await page.isVisible('#panel.on') && !(await ev(() => window.__GAME.Town.T.cs.named))); }
+    await page.click(`#pBody [data-e="${evi.good}"]`); await advance();
     ok(`${tag} 委託 ${i+1} 命名正確`, await ev(() => window.__GAME.Town.T.cs.named) === 'best');
     if (i === 0) await page.screenshot({path:`${out}/${tag}-choose.png`});
     await page.locator('#pBtns button').first().click(); await advance();

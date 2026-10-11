@@ -117,16 +117,33 @@ const Game = {
   judge(word, lv){
     const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, who = c.npc;
     cs.tries++;
-    const rank = c.best[v].includes(word) ? 'best' : c.ok[v].includes(word) ? 'ok' : null;
-    if (!rank){
-      const w = c.wrong[word], line = w && typeof w === 'object' ? w[v] : w;
-      this.say([line ? [who, line] : ['sys', `${NAMES[who]}皺了皺眉：「好像不是這樣……」`], ['sys', '再回去多看看線索吧。']], () => this.casePanel());
+    if (c.best[v].includes(word)){ cs.word = word; cs.lv = lv; this.evidencePanel(); return; }
+    if (c.ok[v].includes(word)){ // 方向對但不夠細，不能結案
+      this.say([[who, `是有點${word}……可是不只是這樣。`], ['sys', `「${word}」底下還藏著別的感覺。再多找線索，換一個更準的詞。`]], () => this.casePanel());
       return;
     }
-    cs.named = rank; cs.word = word; cs.typesAtName = Object.keys(cs.found).length; cs.order = shuffle(c.options);
-    const target = c.level[v], lines = [[who, c.right[v]]];
-    if (rank === 'ok') lines.push(['sys', `方向對了。如果用更細的詞，會是「${c.best[v][0]}」。`]);
-    lines.push(['sys', Math.abs(lv - target) <= 1 ? `強度也判斷得很準，是 ${target}。` : `強度差了一點，他看起來大概是 ${target}。`]);
+    const w = c.wrong[word], line = w && typeof w === 'object' ? w[v] : w;
+    this.say([line ? [who, line] : ['sys', `${NAMES[who]}皺了皺眉：「好像不是這樣……」`], ['sys', '再回去多看看線索吧。']], () => this.casePanel());
+  },
+  evidencePanel(){
+    const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, word = cs.word;
+    const has = cs.clues.some(k => c.evidence[v].includes(k.key));
+    const list = cs.clues.map((k, i) => `<button class="pb wide" data-e="${i}"><span class="tag ${k.type}">${TYPE_NAME[k.type]}</span>${esc(k.text)}</button>`).join('');
+    this.panel(`為什麼是「${word}」？`, `<p>從線索本挑一條最能說明「${esc(word)}」的線索。</p><div class="row">${list}</div>` +
+      (has ? '' : '<p class="hint">你的線索本裡好像還沒有能證明這個情緒的線索，再去找找看。</p>'),
+      [{t:'回去找線索', fn:() => { this.closePanel(); this.casePanel(); }}]);
+    document.querySelectorAll('#pBody [data-e]').forEach(b => b.addEventListener('click', () => { this.closePanel(); this.checkEvidence(cs.clues[+b.dataset.e]); }));
+  },
+  checkEvidence(k){
+    const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, who = c.npc, word = cs.word;
+    cs.evTries++;
+    if (!c.evidence[v].includes(k.key)){
+      this.say([[who, '這跟那個沒什麼關係吧……'], ['sys', `這條線索說明不了「${word}」。再挑一條，或回去多找線索。`]], () => this.evidencePanel());
+      return;
+    }
+    cs.named = 'best'; cs.typesAtName = Object.keys(cs.found).length; cs.order = shuffle(c.options);
+    const target = c.level[v], lines = [['sys', `證據：${k.text}`], [who, c.right[v]]];
+    lines.push(['sys', Math.abs(cs.lv - target) <= 1 ? `強度也判斷得很準，是 ${target}。` : `強度差了一點，他看起來大概是 ${target}。`]);
     lines.push(['sys', '他聽到你說出來，看起來放鬆了一點。']);
     this.say(lines, () => this.casePanel());
   },
@@ -177,9 +194,10 @@ const Game = {
     const T = Town.T, r = T.results;
     const avg = r.reduce((a, x) => a + x.typesAtName, 0) / Math.max(1, r.length);
     const clueLine = avg >= 3.5 ? VERDICT.clue4 : avg >= 2.5 ? VERDICT.clue3 : VERDICT.clue2;
-    const nameLine = r.every(x => x.named === 'best') ? VERDICT.nameBest : VERDICT.nameOk;
+    const first = r.filter(x => x.tries === 1 && x.evTries === 1).length;
+    const nameLine = first === r.length ? VERDICT.nameBest : VERDICT.nameOk;
     const great = r.filter(x => x.fit === 'great').length, fitLine = great >= 2 ? VERDICT.fitHigh : VERDICT.fitLow;
-    const rows = r.map((x, i) => { const c = CASES[i]; return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：線索 ${x.typesAtName} 種，陪伴方法「${x.choice}」<span class="fit ${x.fit}">${FIT[x.fit]}</span></p>`; }).join('');
+    const rows = `<p>第一次就說對情緒和證據：<b>${first}/${r.length}</b> 個委託</p>` + r.map((x, i) => { const c = CASES[i]; return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：線索 ${x.typesAtName} 種，說了 ${x.tries} 次、挑證據 ${x.evTries} 次，陪伴方法「${x.choice}」<span class="fit ${x.fit}">${FIT[x.fit]}</span></p>`; }).join('');
     const st = this.stageStats, sec = st ? '' : '';
     $('#settleCard').innerHTML = `<h2>結案報告</h2>
       <p>你走到社辦門口，發現自己的手已經放開了。</p>

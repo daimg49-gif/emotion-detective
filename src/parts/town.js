@@ -104,25 +104,25 @@ const Town = (() => {
   }
   function startCase(i){
     T.ci = i; T.step = 'case';
-    T.cs = {v: Math.random() < .5 ? 'A' : 'B', found:{}, clues:[], named:null, tries:0, typesAtName:0, fit:null, choice:null};
+    T.cs = {v: Math.random() < .5 ? 'A' : 'B', found:{}, clues:[], named:null, tries:0, evTries:0, typesAtName:0, fit:null, choice:null};
     if (Game.forceVariant) T.cs.v = Game.forceVariant[i] || T.cs.v;
     rebuildBlock(); Game.objective(); Game.clueCount();
   }
-  function addClue(type, text){
+  function addClue(type, text, key){
     const fresh = !T.cs.found[type];
     T.cs.found[type] = true;
-    if (!T.cs.clues.some(c => c.text === text)) T.cs.clues.push({type, text});
+    if (!T.cs.clues.some(c => c.text === text)) T.cs.clues.push({type, text, key: key || type});
     Game.clueCount();
     return fresh;
   }
   function clue(entId){
     const c = CASES[T.ci], d = c.entClues[entId], v = T.cs.v, type = typeof d.type === 'object' ? d.type[v] : d.type;
-    const fresh = addClue(type, d[v]);
+    const fresh = addClue(type, d[v], entId);
     Game.say([['sys', d[v]], ['sys', fresh ? `找到「${TYPE_NAME[type]}」線索。` : '這個線索已經記下來了。']]);
   }
   function finishCase(){
     const c = CASES[T.ci];
-    T.results.push({id:c.id, v:T.cs.v, typesAtName:T.cs.typesAtName, named:T.cs.named, tries:T.cs.tries, fit:T.cs.fit, choice:T.cs.choice});
+    T.results.push({id:c.id, v:T.cs.v, typesAtName:T.cs.typesAtName, named:T.cs.named, tries:T.cs.tries, evTries:T.cs.evTries, fit:T.cs.fit, choice:T.cs.choice});
     if (T.ci < CASES.length - 1){ startCase(T.ci + 1); }
     else { T.step = 'return'; T.ci = -1; T.cs = null; rebuildBlock(); Game.clueCount(); }
     Game.objective();
