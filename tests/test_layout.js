@@ -9,12 +9,13 @@ const SIZES = [
 (async () => {
   const browser = await chromium.launch(); const res = [];
   const ok = (n, c, i='') => res.push(`${c ? 'PASS' : 'FAIL'} ${n} ${i}`);
-  for (const [name, w, h] of SIZES){
+  for (const [si, [name0, w, h]] of SIZES.entries()){
+    const ch = [3, 4, 1][si % 3], name = `${name0}-第${ch}章`; // 每種尺寸輪流用不同章節，三章的技能按鈕都會測到
     const ctx = await browser.newContext({viewport:{width:w, height:h}, hasTouch:true});
     const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message));
     await page.goto('file://' + file);
     await page.screenshot({path:`${out}/${name}-0title.png`});
-    await page.click('#startBtn'); await page.screenshot({path:`${out}/${name}-0chapters.png`}); await page.click('#ch3'); await page.waitForTimeout(200);
+    await page.click('#startBtn'); await page.screenshot({path:`${out}/${name}-0chapters.png`}); await page.click('#ch' + ch); await page.waitForTimeout(200);
     const check = async (label, sel) => page.evaluate(([sel]) => {
       const vw = innerWidth, vh = innerHeight, cv = document.querySelector('#cv').getBoundingClientRect();
       const bad = [], overlap = [];
@@ -46,7 +47,7 @@ const SIZES = [
     await page.screenshot({path:`${out}/${name}-2shelf.png`});
     for (let i = 0; i < 10 && await page.isVisible('#dlg'); i++) await page.click('#dbox');
     // 闖關畫面
-    await page.evaluate(() => { const G = window.__GAME.Game; ['breath','pause','angle','say'].forEach(k => G.skills.add(k)); G.startStage(); });
+    await page.evaluate(() => { const G = window.__GAME.Game; window.__GAME.STAGE.skills.forEach(s => G.skills.add(s.k)); G.startStage(); });
     await page.waitForTimeout(200);
     r = await check('stage', '#top, #controls button, #pauseBtn, .sk, #jump, #left, #right');
     ok(`${name} 闖關：按鈕都在螢幕內`, !r.bad.length, r.bad.join(','));
@@ -55,7 +56,7 @@ const SIZES = [
     ok(`${name} 遊戲畫面夠大`, r.cv[0] >= 320, `畫面 ${r.cv}`);
     await page.screenshot({path:`${out}/${name}-3stage.png`});
     // 結算畫面可以捲到底
-    await page.evaluate(() => { const G = window.__GAME.Game; G.stageWon({used:{breath:1,pause:1,angle:1,say:1}}); });
+    await page.evaluate(() => { const G = window.__GAME.Game; G.stageWon({used:Object.fromEntries(window.__GAME.STAGE.skills.map(s => [s.k, 1]))}); });
     await page.waitForTimeout(200);
     const again = await page.evaluate(() => { const b = document.querySelector('#againBtn'); b.scrollIntoView(); const r = b.getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.top >= 0; });
     ok(`${name} 結算按鈕捲得到`, again);

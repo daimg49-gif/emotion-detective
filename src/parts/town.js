@@ -2,8 +2,8 @@
    ② 校園地圖（俯視）：點地圖移動、調查、案件流程
    ========================================================= */
 const Town = (() => {
-  const W = MAP.w, H = MAP.h, SPEED = 74;
-  const FLOOR = {wood:1, class:2, hall:3, grass:4, court:5};
+  const W = 40, H = 26, SPEED = 74; // 地圖大小每章都一樣，房間和物件看 MAP（換章時由 loadChapter 指定）
+  const FLOOR = {wood:1, class:2, hall:3, grass:4, court:5, clinic:6};
   let tiles, block, T;
 
   function build(){
@@ -17,7 +17,7 @@ const Town = (() => {
     if (c){
       const p = c.pos[T.cs.v];
       list.push({id:c.npc, npc:c.npc, tiles:[[p.x,p.y]], expr:p.expr, pose:p.pose, shake:p.shake, main:true});
-      c.extras.forEach(e => list.push({id:e.id, npc:e.id, tiles:[[e.x,e.y]], expr:e.expr, pose:e.pose}));
+      c.extras.forEach(e => list.push({id:e.id, npc:e.id, tiles:[[e.x,e.y]], expr:e.expr, pose:e.pose, line:e.line}));
     }
     return list;
   }
@@ -99,7 +99,7 @@ const Town = (() => {
     }
     if (c && e.main){ Game.casePanel(); return; }
     if (c && c.entClues[e.id]){ clue(e.id); return; }
-    if (e.npc && e.npc !== 'mia'){ Game.say([[e.npc, '……']]); return; }
+    if (e.npc && e.npc !== 'mia'){ Game.say([[e.npc, e.line || '……']]); return; }
     if (e.flavor) Game.say([['sys', e.flavor]]);
   }
   function startCase(i){
@@ -128,14 +128,15 @@ const Town = (() => {
   }
 
   /* ---------- 畫面 ---------- */
-  const FC = {1:['#b07a4a','#a06c40'], 2:['#c9a46c','#bd975f'], 3:['#d9d2c3','#cfc7b6'], 4:['#6fb35f','#67aa57'], 5:['#c8553d','#bf4c35']};
+  const FC = {1:['#b07a4a','#a06c40'], 2:['#c9a46c','#bd975f'], 3:['#d9d2c3','#cfc7b6'], 4:['#6fb35f','#67aa57'], 5:['#c8553d','#bf4c35'], 6:['#e6eef2','#d8e3ea']};
   function drawTiles(cx, cy){
     const x0 = Math.max(0, Math.floor(cx/TS)), y0 = Math.max(0, Math.floor(cy/TS));
     for (let y = y0; y < Math.min(H, y0 + 19); y++) for (let x = x0; x < Math.min(W, x0 + 32); x++){
       const t = tiles[y][x], sx = x*TS - cx, sy = y*TS - cy;
       if (!t){
         const below = y+1 < H && tiles[y+1][x];
-        if (y >= 1 && y <= 6 && x >= 10 && x <= 26){ // 其他班級的教室外牆
+        const side = (x > 10 && tiles[y][x-1]) || (x < 26 && tiles[y][x+1]); // 旁邊是這章開放的房間，就畫普通牆
+        if (y >= 1 && y <= 6 && x >= 10 && x <= 26 && !side){ // 其他班級的教室外牆
           R(sx, sy, TS, TS, '#b9a58a'); R(sx, sy+TS-1, TS, 1, '#a08c72');
           if ((y === 2 || y === 5) && x % 3 !== 1){ O(sx+3, sy+2, 10, 9, '#8ecae6'); R(sx+8, sy+2, 1, 9, '#2B2D42'); }
           if (y === 6 && x % 8 === 2) O(sx+3, sy+1, 10, 14, '#7a4a2a');
@@ -165,12 +166,16 @@ const Town = (() => {
       case 'sdesk': O(sx+2, sy+3, 12, 8, '#a8844f'); R(sx+4, sy+5, 6, 3, '#EDF2F4'); break;
       case 'board': O(sx+1, sy, 14, 12, '#b07a4a'); R(sx+3, sy+2, 4, 5, '#EDF2F4'); R(sx+8, sy+3, 5, 4, '#F2B5D4'); R(sx+4, sy+8, 7, 2, '#E9C46A'); break;
       case 'photo': O(sx+1, sy, 14, 12, '#2B2D42'); R(sx+3, sy+2, 4, 4, '#8ecae6'); R(sx+9, sy+2, 4, 4, '#E9C46A'); R(sx+3, sy+7, 4, 3, '#F4A261');
-        if (T.step === 'case' && CASES[T.ci].id === 'c3'){ R(sx+9, sy+7, 4, 3, '#EDF2F4'); R(sx+10, sy+8, 1, 2, '#3a7bd5'); R(sx+12, sy+8, 1, 2, '#3a7bd5'); } break;
+        if (T.step === 'case' && CASES[T.ci].markPhoto){ R(sx+9, sy+7, 4, 3, '#EDF2F4'); R(sx+10, sy+8, 1, 2, '#3a7bd5'); R(sx+12, sy+8, 1, 2, '#3a7bd5'); } break;
       case 'sink': O(sx+1, sy+2, n*TS-2, 9, '#cfd8e3'); for (let i = 0; i < n; i++) { R(sx+5+i*TS, sy+4, 6, 4, '#8ecae6'); R(sx+7+i*TS, sy, 2, 4, '#8D99AE'); } break;
       case 'blackboard': O(sx, sy-4, n*TS, 14, '#2f5d4a'); R(sx+6, sy, 22, 1, '#EDF2F4'); R(sx+6, sy+3, 30, 1, '#EDF2F4'); R(sx, sy+10, n*TS, 2, '#8a5a34'); break;
       case 'trash': O(sx+3, sy+2, 10, 12, '#5a6b8a'); R(sx+2, sy+1, 12, 2, '#3d4a6b'); R(sx+5, sy-1, 3, 3, '#EDF2F4'); R(sx+8, sy, 3, 2, '#EDF2F4'); break;
       case 'sign': R(sx+7, sy+6, 2, 10, '#2B2D42'); O(sx+1, sy, 14, 8, '#EDF2F4'); R(sx+3, sy+2, 10, 1, '#2B2D42'); R(sx+3, sy+4, 7, 1, '#2B2D42'); break;
       case 'score': O(sx+1, sy, n*TS-2, 12, '#2B2D42'); R(sx+4, sy+3, 8, 6, '#EF233C'); R(sx+20, sy+3, 8, 6, '#3a7bd5'); R(sx+6, sy+5, 4, 2, '#EDF2F4'); R(sx+22, sy+5, 4, 2, '#EDF2F4'); break;
+      case 'piano': O(sx+1, sy-4, n*TS-2, 16, '#2B2D42'); R(sx+3, sy+5, n*TS-6, 4, '#EDF2F4'); for (let i = 0; i < n*4; i++) R(sx+4+i*7, sy+5, 2, 2, '#2B2D42'); R(sx+6, sy-2, 12, 5, '#f2efe6'); break;
+      case 'bed': O(sx+1, sy-2, 14, n*TS, '#EDF2F4'); R(sx+2, sy-1, 12, 6, '#8ecae6'); R(sx+1, sy+n*TS-4, 14, 2, '#8D99AE'); break;
+      case 'book': O(sx+3, sy+3, 10, 8, '#c8553d'); R(sx+5, sy+4, 7, 6, '#EDF2F4'); R(sx+6, sy+6, 5, 1, '#8D99AE'); R(sx+6, sy+8, 4, 1, '#8D99AE'); break;
+      case 'mini': O(sx+1, sy, 14, 11, '#2f5d4a'); R(sx+3, sy+3, 8, 1, '#EDF2F4'); R(sx+3, sy+6, 5, 1, '#EDF2F4'); R(sx+7, sy+11, 2, 4, '#8a5a34'); break;
       case 'tree': R(sx+6, sy+8, 4, 8, '#6e452d'); disc(sx+8, sy+2, 9, '#2B2D42'); disc(sx+8, sy+2, 8, '#3f7a3c'); disc(sx+6, sy, 4, '#5fae5a'); break;
     }
   }
@@ -194,6 +199,7 @@ const Town = (() => {
       else if (lk.style === 'curly'){ R(x-5+sh, top-1, 10, 3, hc); R(x-5+sh, top+2, 2, 2, hc); R(x+3+sh, top+2, 2, 2, hc); }
       else if (lk.style === 'braids'){ R(x-4+sh, top, 8, 2, hc); R(x-6+sh, top+3, 2, 6, hc); R(x+4+sh, top+3, 2, 6, hc); }
       else if (lk.style === 'pony'){ R(x-4+sh, top, 8, 2, hc); R(x-4+sh, top+2, 1, 3, hc); R(x+4+sh, top+1, 2, 6, hc); }
+      else if (lk.style === 'long'){ R(x-5+sh, top, 10, 2, hc); R(x-5+sh, top+2, 2, 8, hc); R(x+3+sh, top+2, 2, 8, hc); }
       else if (lk.style === 'bob'){ R(x-5+sh, top, 10, 2, hc); R(x-5+sh, top+2, 2, 4, hc); R(x+3+sh, top+2, 2, 4, hc); }
       else { R(x-4+sh, top, 8, 2, hc); R(x-4+sh, top+2, 1, 2, hc); }
       if (lk.style === 'cap'){ O(x-5+sh, top-2, 10, 3, lk.cap || '#7a4a2a'); R(x+(dir === 'left' ? -7 : dir === 'right' ? 3 : -3)+sh, top+1, 4, 1, lk.cap || '#7a4a2a'); }

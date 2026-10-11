@@ -1,9 +1,12 @@
 /* =========================================================
-   ① 內容表：第三章「生氣」（文字依 Pei 確認的腳本 v0.1）
+   ① 內容表・共用：人物外觀、名字、情緒卡、地圖骨架
+   每一章的委託、闖關放在 src/parts/chN.js，用 CH_DATA[N] 登記
    ========================================================= */
+const CH_DATA = {};
 const LOOKS = {
   me:   {hair:'#3b2a20', style:'cap', top:'#2A9D8F', cap:'#7a4a2a'},
   mia:  {hair:'#2a1d18', style:'pony', top:'#c98b4f', glasses:true},
+  // 第三章
   bear: {hair:'#1d1d22', style:'buzz', top:'#EF233C', big:true},
   xiang:{hair:'#2a2420', style:'cap', top:'#2A9D8F', cap:'#2B2D42'},
   le:   {hair:'#5a3a22', style:'curly', top:'#E9C46A'},
@@ -11,197 +14,115 @@ const LOOKS = {
   kui:  {hair:'#2a211c', style:'braids', top:'#3f8f5a'},
   kai:  {hair:'#222', style:'cap', top:'#8D99AE', cap:'#EF233C'},
   jie:  {hair:'#3a2a22', style:'short', top:'#f2f2ee', stripe:'#5a6b8a'},
+  // 第四章
+  star: {hair:'#1d1d22', style:'short', top:'#3a7bd5'},
+  lin:  {hair:'#2a1d18', style:'long', top:'#7B6D8D', big:true},
+  dou:  {hair:'#3b2a20', style:'cap', top:'#8ecae6', cap:'#E9C46A'},
+  nurse:{hair:'#222', style:'bob', top:'#f2f2ee', big:true},
+  rain: {hair:'#2a211c', style:'pony', top:'#8D99AE'},
+  zhe:  {hair:'#222', style:'short', top:'#3f8f5a', glasses:true},
+  // 第一章
+  shu:  {hair:'#2a2420', style:'buzz', top:'#F4A261'},
+  aka:  {hair:'#5a3a22', style:'curly', top:'#8D99AE'},
+  mi:   {hair:'#1d1d22', style:'bob', top:'#F2B5D4'},
+  chun: {hair:'#e8e8e8', style:'cap', top:'#3a7bd5', cap:'#3d4a6b', big:true},
+  qing: {hair:'#2a1d18', style:'pony', top:'#f2f2ee'},
+  wang: {hair:'#222', style:'short', top:'#3f8f5a', big:true},
 };
-const CHAPTERS = [
-  {n:1, name:'開心', emoji:'😊', words:'興奮、得意、自豪、感激、放心', ready:false},
-  {n:2, name:'難過', emoji:'😢', words:'失望、寂寞、委屈、捨不得', ready:false},
-  {n:3, name:'生氣', emoji:'😠', words:'不公平、挫折、被冒犯、丟臉', ready:true},
-  {n:4, name:'害怕', emoji:'😨', words:'緊張、擔心、焦慮', ready:false},
-  {n:5, name:'討厭', emoji:'😒', words:'噁心、不耐煩、嫉妒、尷尬', ready:false},
-];
-const NAMES = {mia:'米亞', radio:'📻 米亞', bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑', me:'我'};
+const NAMES = {mia:'米亞', radio:'📻 米亞', me:'我',
+  bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑',
+  star:'小星', lin:'林老師', dou:'豆豆', nurse:'護理師阿姨', rain:'小雨', zhe:'阿哲',
+  shu:'小樹', aka:'阿卡', mi:'小米', chun:'春伯', qing:'晴晴', wang:'王老師'};
 const TYPE_NAME = {face:'表情', body:'身體', talk:'話語', scene:'情境'};
-const BASE_WORDS = ['生氣','難過','害怕','開心'];
-const FINE_WORDS = ['不公平','挫折','被冒犯','丟臉','緊張'];
+const BASE_WORDS = ['開心','難過','生氣','害怕','討厭'];
 const FIT = {great:'很適合', ok:'還可以', bad:'不適合'};
 
-const CARDS = {
-  '生氣':  {body:'臉熱、握拳、咬牙', cause:'想要的被擋住'},
-  '不公平':{body:'很想爭辯、一直重講同一件事', cause:'覺得規則對自己不一樣'},
-  '挫折':  {body:'想放棄、想把東西丟掉', cause:'努力很多次還是失敗'},
-  '被冒犯':{body:'想衝過去、聲音變大', cause:'被取笑、被不尊重'},
-  '丟臉':  {body:'耳朵和臉紅、想躲起來', cause:'不想被別人看到自己的樣子'},
-};
-const CARD_ORDER = ['生氣','不公平','挫折','被冒犯','丟臉'];
+/* 章節卡：不寫情緒名稱，用一件事來暗示 */
+const CHAPTERS = [
+  {n:1, icon:'🎈', event:'園遊會的氣球', teaser:'三個人都在笑，可是笑的原因不一樣。'},
+  {n:2, icon:'☔', event:'下雨的操場', teaser:'雨停了，有人還站在原地。'},
+  {n:3, icon:'📓', event:'掉進水桶的筆記', teaser:'紙塔倒了三次，有人被喊了綽號。'},
+  {n:4, icon:'🌫️', event:'起霧的舊走廊', teaser:'有人說肚子痛，有人一直沒進教室。'},
+  {n:5, icon:'🔦', event:'聚光燈下的舞台', teaser:'燈一亮，大家都在看。'},
+];
 
-const TUTORIAL = {
-  opening: [
-    ['mia','你就是新社員？歡迎！我們偵探社不找失物，我們找的是心情。'],
-    ['mia','學校裡每天都有人不對勁。有人生氣、有人難過，可是他們很少直接說出來。'],
-    ['mia','偵探要做三件事：找線索、說出那是什麼情緒、陪他找到適合的方法。'],
-    ['sys','點地圖，角色會自己走過去。走到人或東西旁邊，按下方的「調查」；直接點他們也可以。先去左上角的書架。'],
-  ],
-  shelf: [['sys','你在書架上找到一本《情緒圖鑑》，裡面還有很多空白頁。'],['sys','左下角的「線索」和右下角的「圖鑑」隨時可以點開看。']],
-  mia: [
+/* 情緒卡：所有章節共用；ch 是這張卡屬於哪一章 */
+const CARDS = {
+  '興奮':{ch:1, body:'停不下來、說話變快變大聲', cause:'期待的事要發生了'},
+  '得意':{ch:1, body:'下巴抬高、想一直講', cause:'覺得自己比別人厲害'},
+  '自豪':{ch:1, body:'臉熱熱的、想分享過程', cause:'努力很久終於做到'},
+  '感激':{ch:1, body:'心裡暖暖的、眼眶可能會紅', cause:'別人幫了你'},
+  '放心':{ch:1, body:'吐一口氣、肩膀放鬆', cause:'擔心的事解決了'},
+  '失望':{ch:2, body:'嘆氣、肩膀垂下來', cause:'期待的事沒發生'},
+  '寂寞':{ch:2, body:'發呆、吃不下', cause:'想要有人陪，身邊卻沒有'},
+  '委屈':{ch:2, body:'眼眶紅、想說又說不出口', cause:'被誤會、被不公平對待'},
+  '捨不得':{ch:2, body:'一直看著、不想放手', cause:'喜歡的人或東西要離開'},
+  '生氣':{ch:3, body:'臉熱、握拳、咬牙', cause:'想要的被擋住'},
+  '不公平':{ch:3, body:'很想爭辯、一直重講同一件事', cause:'覺得規則對自己不一樣'},
+  '挫折':{ch:3, body:'想放棄、想把東西丟掉', cause:'努力很多次還是失敗'},
+  '被冒犯':{ch:3, body:'想衝過去、聲音變大', cause:'被取笑、被不尊重'},
+  '丟臉':{ch:3, body:'耳朵和臉紅、想躲起來', cause:'不想被別人看到自己的樣子'},
+  '害怕':{ch:4, body:'想躲、想逃、身體縮起來', cause:'覺得有危險'},
+  '緊張':{ch:4, body:'心跳快、手抖、想跑廁所', cause:'某件事就快發生了'},
+  '擔心':{ch:4, body:'一直想同一件事、皺眉', cause:'想到以後可能發生的壞事'},
+  '焦慮':{ch:4, body:'肚子痛、頭痛、睡不好', cause:'說不太出在怕什麼，但一直不安'},
+  '噁心':{ch:5, body:'皺鼻子、摀嘴、往後退', cause:'看到、聞到、吃到不乾淨的東西'},
+  '不耐煩':{ch:5, body:'腳點地、敲東西、翻白眼', cause:'等太久、被一直打擾'},
+  '嫉妒':{ch:5, body:'一直盯著看、咬嘴唇', cause:'別人有你想要的東西或關係'},
+  '尷尬':{ch:5, body:'臉紅、傻笑、抓頭', cause:'出了小狀況，覺得大家都在看'},
+};
+
+/* 每章都一樣的教學段落 */
+const TUTORIAL_COMMON = {
+  tap:['sys','點地圖，角色會自己走過去。走到人或東西旁邊，按下方的「調查」；直接點他們也可以。先去左上角的書架。'],
+  shelf:[['sys','你在書架上找到一本《情緒圖鑑》，裡面還有很多空白頁。'],['sys','左下角的「線索」和右下角的「圖鑑」隨時可以點開看。']],
+  mia:[
     ['mia','線索有四種：看表情、看身體、聽他說的話、看周圍發生什麼事。'],
     ['mia','至少找到兩種線索，才能判斷是什麼情緒。找越多，判斷越準。'],
     ['mia','送你第一招。不管遇到什麼事，先吸氣數到四，再慢慢吐氣。'],
     ['sys','學會技能：深呼吸'],
     ['mia','今天有三個委託，都貼在走廊的公布欄。想先做哪件都可以，做完一件就能決定要不要收工。'],
   ],
-  bump: [
-    ['sys','你抱著寫滿線索的偵探筆記走回社辦。'],
-    ['sys','轉角有人跑過來撞到你，筆記掉進水桶，字全部糊掉了。'],
-    ['sys','撞你的人頭也沒回就跑了。走廊另一頭有人在笑。'],
-    ['in','臉好燙。手不自覺握緊了。'],
-    ['mia','等等！你的情緒冒出來了。這次，換你當自己的偵探。'],
-    ['sys','走到社辦門口。路上的情緒小怪，要用對方法才過得去。'],
-  ],
 };
-
-const CASES = [
-  { id:'c1', title:'不公平的出局', place:'操場', npc:'bear',
-    board:'操場躲避球比賽吵起來了。四年級的大熊一直站在場邊不走。',
-    pos:{A:{x:12,y:18,pose:'stand',expr:'angry',shake:true}, B:{x:19,y:16,pose:'sit',expr:'sulk'}},
-    extras:[{id:'xiang', x:8, y:18, expr:'neutral'}],
-    npcClues:{
-      face:{A:'眉頭皺成一團，牙齒咬得很緊，臉漲紅。', B:'嘴巴噘著，眼睛一直盯著地上。'},
-      body:{A:'雙手握拳，肩膀一直在抖，站著不動。', B:'坐在場邊，腳一直踢地上的小石頭。'},
-      talk:{A:'😠「他明明沒打到我！」', B:'😞「每次都判我出局……」'},
-    },
-    entClues:{
-      score:{type:'scene', A:'計分板：紅隊 9、藍隊 10。大熊穿的是紅隊的衣服。', B:'計分板：紅隊 9、藍隊 10。大熊穿的是紅隊的衣服。'},
-      sign:{type:'scene', A:'籃球架旁的公告：「裁判的判決為最後判決」。', B:'籃球架旁的公告：「裁判的判決為最後判決」。'},
-      xiang:{type:'scene', A:'小翔：「我看到球擦到他的袖子啦。」', B:'小翔：「我看到球擦到他的袖子啦。」'},
-    },
-    evidence:{A:['talk','sign'], B:['talk','sign']},
-    best:{A:['不公平'], B:['不公平']}, ok:{A:['生氣'], B:['生氣']}, level:{A:5, B:3},
-    right:{A:'大熊吐了一口氣：「對，就是不公平。」', B:'大熊停下踢石頭的腳：「……嗯。」'},
-    wrong:{'難過':'「我才沒有難過！我是覺得他亂判！」', '丟臉':'「被判出局又不丟臉，是他判錯。」'},
-    options:[
-      {t:'「我們先去樹下喝口水，等一下再說。」', m:'先離開一下',
-        A:{fit:'great', r:'他跟你走到樹下，喝了兩口水，肩膀不抖了。他說：「球真的只擦到衣服。」'},
-        B:{fit:'ok', r:'他跟著走，但說：「我又沒有很氣。」'}},
-      {t:'「你覺得哪裡不公平？跟我說說看。」', m:'說出感受',
-        A:{fit:'bad', r:'他吼：「就是不公平啊！」旁邊的人都轉頭看過來。'},
-        B:{fit:'great', r:'他說上一場也被判過一次。講完以後，他不再踢石頭了。'}},
-      {t:'「比賽而已，不要那麼生氣啦。」', m:'硬吞下去',
-        A:{fit:'bad', r:'他瞪你一眼，把球用力踢出場外。'},
-        B:{fit:'bad', r:'他說「喔」，然後不講話了。'}},
-      {t:'「我陪你去問小翔，他看到什麼。」', m:'處理原因',
-        A:{fit:'bad', r:'大熊一走過去就開始大聲講，小翔也生氣了。'},
-        B:{fit:'ok', r:'小翔說球擦到他的袖子。大熊不太服氣，但點了點頭。'}},
-    ],
-    close:[['radio','很氣的時候，先讓身體停下來。腳停住、手放開，數兩秒。']],
-    skill:'pause', skillName:'暫停',
-  },
-  { id:'c2', title:'倒了三次的塔', place:'三年級教室', npc:'le',
-    board:'三年級教室，阿樂的紙塔一直倒，下課前要交。',
-    pos:{A:{x:36,y:5,pose:'stand',expr:'cry'}, B:{x:31,y:4,pose:'sit',expr:'blank'}},
-    extras:[{id:'mate', x:34, y:4, expr:'neutral', pose:'sit'}],
-    npcClues:{
-      face:{A:'眼眶有點紅，嘴巴抿成一條線。', B:'沒什麼表情，眼睛看著窗外。'},
-      body:{A:'把紙揉成一團，用力丟進垃圾桶。', B:'趴在桌上，手指一直敲桌面。'},
-      talk:{A:'「我就是很笨，做不起來啦！」', B:null},
-    },
-    noTalk:'他沒有回答你，手指還在敲桌子。也許可以問問旁邊的人。',
-    entClues:{
-      trash:{type:'scene', A:'垃圾桶裡有三個揉爛的紙塔。', B:'垃圾桶裡有三個揉爛的紙塔。'},
-      bboard:{type:'scene', A:'黑板上寫著「下課前交作品」。', B:'黑板上寫著「下課前交作品」。'},
-      mate:{type:{A:'scene', B:'talk'}, A:'隔壁同學聳聳肩：「他剛剛把紙丟掉了。」', B:'隔壁同學小聲說：「他從第二節就一直在弄這個。」'},
-    },
-    evidence:{A:['talk','body','trash','mate'], B:['trash','mate']},
-    best:{A:['挫折'], B:['挫折']}, ok:{A:['生氣'], B:['生氣']}, level:{A:4, B:3},
-    right:{A:'阿樂吸了吸鼻子：「……一直倒，很煩。」', B:'阿樂停下敲桌子的手：「嗯，很煩。」'},
-    wrong:{'不公平':'「沒有人害我啊……是我自己做不好。」', '緊張':'「我不是緊張，是一直失敗很煩。」'},
-    options:[
-      {t:'「先去走廊走一圈，等一下再回來。」', m:'先離開一下',
-        A:{fit:'great', r:'走回來以後，他把揉爛的紙攤開來看。'},
-        B:{fit:'ok', r:'他走了一圈，但看了時鐘：「沒時間了啦。」'}},
-      {t:'「我們拆成三步，這次只做底座就好。」', m:'把問題拆小',
-        A:{fit:'ok', r:'他說「做了也是倒」，但還是拿了一張新的紙。'},
-        B:{fit:'great', r:'他做好底座，自己說：「好像比較穩了。」'}},
-      {t:'「倒三次也是收集資料。你看它每次從哪裡倒？」', m:'換個角度想',
-        A:{fit:'bad', r:'「我不想看！」他把頭轉開。'},
-        B:{fit:'great', r:'他翻出垃圾桶的紙塔，發現三次都從左下角倒。'}},
-      {t:'「你那麼聰明，一定做得到！」', m:'打氣',
-        A:{fit:'bad', r:'「可是就做不到啊！」他眼淚掉下來。'},
-        B:{fit:'bad', r:'他嘆一口氣，繼續趴著。'}},
-    ],
-    close:[['radio','卡住的時候，換個方向看。擋住你的東西，換個角度可能變成墊腳石。']],
-    skill:'angle', skillName:'換個角度',
-  },
-  { id:'c3', title:'哭哭葵', place:'五年級走廊', npc:'kui',
-    board:'五年級走廊，有人在喊別人的綽號。',
-    pos:{A:{x:18,y:9,pose:'stand',expr:'angry'}, B:{x:23,y:9,pose:'stand',expr:'hide'}},
-    extras:[{id:'kai', x:15, y:9, expr:'laugh'}, {id:'jie', x:16, y:9, expr:'laugh'}],
-    npcClues:{
-      face:{A:'臉很紅，眼睛瞪著阿凱和阿傑。', B:'低著頭看不到臉，耳朵紅紅的。'},
-      body:{A:'水壺握得很緊，往阿凱他們走過去。', B:'躲到洗手台旁邊，水一直開著，洗手洗了很久。'},
-      talk:{A:'「再叫一次試試看！」', B:'「沒事啦，他們在開玩笑。」'},
-    },
-    entClues:{
-      photo:{type:'scene', A:'公布欄上週比賽的照片，小葵哭的那張被人用筆畫了很多眼淚。', B:'公布欄上週比賽的照片，小葵哭的那張被人用筆畫了很多眼淚。'},
-      kai:{type:'scene', A:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」', B:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」'},
-      jie:{type:'scene', A:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」', B:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」'},
-    },
-    evidence:{A:['talk','kai','jie','photo'], B:['face','body','photo']},
-    best:{A:['被冒犯'], B:['丟臉']}, ok:{A:['生氣'], B:['難過']}, level:{A:5, B:4},
-    right:{A:'小葵咬著嘴唇：「他們很沒禮貌。」', B:'小葵小聲說：「……我不想被大家看到。」'},
-    wrong:{'生氣':{B:'「我沒有生氣……我只是不想被大家看到。」'}},
-    options:[
-      {t:'「我陪你去跟老師說照片的事。」', m:'找信任的大人',
-        A:{fit:'great', r:'她停下腳步，把水壺放下。老師把照片拿下來了。'},
-        B:{fit:'great', r:'她猶豫了一下：「會不會被說告狀？」最後還是點頭。老師把照片拿下來了。'}},
-      {t:'「你看起來很生氣，對不對？」', m:'說出感受',
-        A:{fit:'great', r:'「對！很氣！」她說完，手鬆開了。'},
-        B:{fit:'bad', r:'「我沒有生氣。」她把頭壓得更低。'}},
-      {t:'「不要理他們就好了。」', m:'硬吞下去',
-        A:{fit:'bad', r:'「為什麼是我要忍？」'},
-        B:{fit:'ok', r:'她鬆了一口氣跟你走開，但照片還貼在公布欄上。'}},
-      {t:'「走，我們去罵回去！」', m:'發洩',
-        A:{fit:'bad', r:'三個人在走廊吵起來，被糾察隊記了名字。'},
-        B:{fit:'bad', r:'她搖頭往後退：「我不要。」'}},
-    ],
-    close:[
-      ['radio','一樣是被取綽號，有人會氣到想衝過去，有人會想躲起來。看到的不一樣，因為心裡的感覺不一樣。'],
-      ['radio','說出「我很生氣」「我覺得很丟臉」，感覺會小一點。這不是我說的，是科學家量出來的。'],
-    ],
-    skill:'say', skillName:'說出來',
-  },
-];
 
 const VERDICT = {
   clue4:'你把四種線索都找齊了，連周圍的小細節都沒漏掉。',
   clue3:'你很會觀察，下次可以多看看周圍發生了什麼事。',
   clue2:'你找到線索就急著判斷。多看一眼，常常會發現不一樣的答案。',
-  nameBest:'你說得出很細的情緒，也找得到證據，不只是「生氣」兩個字。',
-  nameOk:'你試了幾次才找到最準的詞和證據。生氣底下，常常還藏著別的感覺。',
+  nameBest: base => `你說得出很細的情緒，也找得到證據，不只是「${base}」兩個字。`,
+  nameOk: base => `你試了幾次才找到最準的詞和證據。「${base}」底下，常常還藏著別的感覺。`,
   fitHigh:'你看得出對方現在需要什麼，不是每次都用同一招。',
   fitLow:'同一個方法，有時有用、有時沒用。差別在對方當下有多激動。',
   last:'今天的三個委託人，下次可能換你需要人陪。到時候，你知道要找誰。',
 };
-const CITE = '研究出處：說出情緒能讓感覺變小，Lieberman 等人 2007 年發表於 Psychological Science 第 18 卷；不同情緒出現在身體不同部位，Nummenmaa 等人 2014 年發表於 PNAS 第 111 卷；陪伴方法的分類參考 Gross 1998 年的情緒調節歷程模型。';
 
-/* 地圖：40×26 格，每格 16 像素 */
-const MAP = { w:40, h:26, start:[4,4],
+/* 地圖骨架：40×26 格，每格 16 像素。各章再加自己的房間、物件 */
+const MAP_BASE = { w:40, h:26, start:[4,4],
   rooms:[ // [x, y, 寬, 高, 地板]
     [1,1,9,6,'wood'], [27,1,12,6,'class'], [1,8,38,3,'hall'], [1,12,38,13,'grass'], [4,15,14,7,'court'] ],
   doors:[[5,7,'wood'], [32,7,'class'], [10,11,'hall'], [11,11,'hall'], [28,11,'hall'], [29,11,'hall']],
-  zones:[ {name:'偵探社社辦', x:1,y:1,w:9,h:6}, {name:'三年級教室', x:27,y:1,w:12,h:6}, {name:'走廊', x:1,y:8,w:38,h:3}, {name:'操場', x:1,y:12,w:38,h:13} ],
+  zones:[ {name:'偵探社社辦', x:1,y:1,w:9,h:6}, {name:'走廊', x:1,y:8,w:38,h:3}, {name:'操場', x:1,y:12,w:38,h:13} ],
   ents:[
     {id:'shelf', name:'書架', tiles:[[2,1],[3,1]], draw:'shelf', flavor:'書架上都是偵探社的舊檔案。'},
     {id:'mdesk', name:'社長的桌子', tiles:[[6,4]], draw:'desk', flavor:'社長的桌子，上面有一盞小檯燈。'},
     {id:'mia', npc:'mia', tiles:[[7,2]], expr:'happy'},
     {id:'board', name:'公布欄', tiles:[[11,8]], draw:'board'},
-    {id:'photo', name:'榮譽榜', tiles:[[13,8]], draw:'photo', flavor:'榮譽榜，貼著上週比賽的照片。'},
-    {id:'sink', name:'洗手台', tiles:[[21,8],[22,8]], draw:'sink', flavor:'洗手台。'},
-    {id:'bboard', name:'黑板', tiles:[[29,1],[30,1],[31,1],[32,1],[33,1]], draw:'blackboard', flavor:'黑板。'},
-    {id:'desk1', tiles:[[29,3]], draw:'sdesk'}, {id:'desk2', tiles:[[31,3]], draw:'sdesk'}, {id:'desk3', tiles:[[34,3]], draw:'sdesk'},
-    {id:'desk4', tiles:[[29,5]], draw:'sdesk'}, {id:'desk5', tiles:[[33,5]], draw:'sdesk'},
-    {id:'trash', name:'垃圾桶', tiles:[[37,6]], draw:'trash', flavor:'垃圾桶。'},
-    {id:'sign', name:'公告', tiles:[[4,13]], draw:'sign', flavor:'籃球架旁的公告。'},
-    {id:'score', name:'計分板', tiles:[[10,13],[11,13]], draw:'score', flavor:'計分板。'},
     {id:'tree1', tiles:[[31,16]], draw:'tree'}, {id:'tree2', tiles:[[35,20]], draw:'tree'}, {id:'tree3', tiles:[[24,22]], draw:'tree'}, {id:'tree4', tiles:[[2,23]], draw:'tree'},
   ],
 };
+const CLASS_DESKS = [{id:'desk1', tiles:[[29,3]], draw:'sdesk'}, {id:'desk2', tiles:[[31,3]], draw:'sdesk'}, {id:'desk3', tiles:[[34,3]], draw:'sdesk'},
+  {id:'desk4', tiles:[[29,5]], draw:'sdesk'}, {id:'desk5', tiles:[[33,5]], draw:'sdesk'}];
+
+/* 目前這一章的資料：loadChapter(n) 換章時重新指定 */
+let CH = null, CASES = [], TUTORIAL = null, CARD_ORDER = [], FINE_WORDS = [], CITE = '', MAP = null;
+function loadChapter(n){
+  CH = CH_DATA[n];
+  CASES = CH.cases; CARD_ORDER = CH.cardOrder; FINE_WORDS = CH.fine; CITE = CH.cite;
+  TUTORIAL = { opening: CH.opening.concat([TUTORIAL_COMMON.tap]), shelf: TUTORIAL_COMMON.shelf, mia: TUTORIAL_COMMON.mia, bump: CH.bump };
+  MAP = { w:MAP_BASE.w, h:MAP_BASE.h, start:MAP_BASE.start,
+    rooms: MAP_BASE.rooms.concat(CH.map.rooms || []), doors: MAP_BASE.doors.concat(CH.map.doors || []),
+    zones: CH.map.zones.concat(MAP_BASE.zones), ents: MAP_BASE.ents.concat(CH.map.ents) };
+  STAGE = CH.stage; LEVEL = CH.stage.level;
+}
+/* 暗區、坑這類「範圍＋設定」的寫法：zone(46, 62, {by:'say'}) */
+const zone = (a, b, o) => Object.assign([a, b], o);

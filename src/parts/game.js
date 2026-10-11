@@ -5,7 +5,14 @@ const $ = s => document.querySelector(s);
 let toastT = null;
 function toast(msg, ms){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2200); }
 function updateBar(){ if (S) $('#barFill').style.width = S.bar + '%'; }
-function refreshSkills(){ document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k; b.classList.toggle('locked', !Game.skills.has(k)); b.querySelector('.cd').style.height = (S ? S.cd[k] / SKILL[k].cd * 100 : 0) + '%'; }); }
+function refreshSkills(){ if (!STAGE) return; document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k, d = skillDef(k); if (!d) return; b.classList.toggle('locked', !Game.skills.has(k)); b.querySelector('.cd').style.height = (S && S.cd[k] ? S.cd[k] / d.cd * 100 : 0) + '%'; }); }
+// 技能按鈕依這一章的 STAGE.skills 產生
+function buildSkills(){
+  const box = $('#skills');
+  box.innerHTML = STAGE.skills.map((d, i) => `<button class="sk" data-k="${d.k}" style="border-color:${d.color}${d.name.length >= 5 ? ';font-size:13px' : ''}" aria-label="技能 ${i+1}：${d.name}"><i>${d.icon}</i>${d.name}<span class="cd"></span></button>`).join('');
+  box.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); useSkill(b.dataset.k); }));
+  refreshSkills();
+}
 const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 
@@ -47,7 +54,7 @@ const Game = {
   objective(){
     const T = Town.T, o = $('#obj');
     const done = T.results.length;
-    const txt = {intro:'聽米亞說明', shelf:'點書架，拿《情緒圖鑑》', mia:'跟米亞說話', board: done ? `已完成 ${done}/3 件。回走廊公布欄選下一步` : '到走廊看公布欄', return:'回社辦，在走廊最左邊', stage:''}[T.step];
+    const txt = {intro:'聽米亞說明', shelf:'點書架，拿《情緒圖鑑》', mia:'跟米亞說話', board: done ? `已完成 ${done}/3 件。回走廊公布欄選下一步` : '到走廊看公布欄', return:CH.returnObj, stage:''}[T.step];
     if (T.step === 'case'){ const c = CASES[T.ci]; o.innerHTML = `委託 ${T.ci+1}/3：到${c.place}找${NAMES[c.npc]}<small>點他和周圍的東西找線索，找到 2 種就能判斷情緒</small>`; }
     else o.textContent = txt || '';
   },
@@ -76,7 +83,7 @@ const Game = {
     const html = CASES.map((x, i) => `<p><span class="tag">委託 ${i+1}</span>${done.has(i) ? '✅ ' : ''}${esc(x.board)}</p>`).join('') +
       `<p class="hint">${n ? `已完成 ${n}/3 件。想繼續、去闖關，或今天先收工都可以。` : '想先做哪件都可以。完成一件以後，就能隨時結束今天的調查。'}</p>`;
     const btns = CASES.map((x, i) => done.has(i) ? null : {t:`接下委託 ${i+1}：${x.title}`, cls:'pri', fn:() => { this.closePanel(); go(i); }}).filter(Boolean);
-    if (n && this.skills.size >= 2 && !this.stageStats) btns.push({t:'🎮 去闖關（闖完就結案）', fn:() => { this.closePanel(); T.step = 'return'; this.objective(); toast('回社辦的路上……', 1600); }});
+    if (n && this.skills.size >= 2 && !this.stageStats) btns.push({t:CH.stageBtn, fn:() => { this.closePanel(); T.step = 'return'; this.objective(); toast(CH.returnToast, 1600); }});
     if (n) btns.push({t:'📋 結束今天的調查', fn:() => { this.closePanel(); this.settle(); }});
     btns.push({t:'先不要', fn:() => this.closePanel()});
     this.panel('公布欄・今日委託', html, btns);
@@ -125,7 +132,8 @@ const Game = {
     cs.tries++;
     if (c.best[v].includes(word)){ cs.word = word; cs.lv = lv; this.evidencePanel(); return; }
     if (c.ok[v].includes(word)){ // 方向對但不夠細，不能結案
-      this.say([[who, `是有點${word}……可是不只是這樣。`], ['sys', `「${word}」底下還藏著別的感覺。再多找線索，換一個更準的詞。`]], () => this.casePanel());
+      const own = c.okLine && c.okLine[v];
+      this.say([[who, own || `是有點${word}……可是不只是這樣。`], ['sys', `「${word}」底下還藏著別的感覺。再多找線索，換一個更準的詞。`]], () => this.casePanel());
       return;
     }
     const w = c.wrong[word], line = w && typeof w === 'object' ? w[v] : w;
@@ -175,28 +183,30 @@ const Game = {
     this.mode = 'stage'; $('#ctlTown').hidden = true; $('#ctlStage').hidden = false; $('#hud').hidden = false; $('#obj').hidden = true;
     reset(); S.running = true;
     // 沒學會的技能，對應的關卡直接打開，避免卡關
-    if (!this.skills.has('say')){ S.lit = true; S.litR = 1; }
-    if (!this.skills.has('angle')) S.fr.forEach(f => { f.state = 'bridge'; f.k = 1; setWall(f, false); for (let x = f.bridge[0]; x <= f.bridge[1]; x++) grid[GROUND][x] = 1; });
+    if (LEVEL.dark && !this.skills.has(LEVEL.dark.by)){ S.lit = true; S.litR = 1; }
+    S.walls.forEach(w => { if (!this.skills.has(STAGE.wallTypes[w.type].openBy)){ w.state = 'open'; w.k = 1; setWall(w, false); openDone(w); } });
     refreshSkills();
-    toast('先往右走。碰到生氣怪之前，想想該用哪一招。', 2600);
+    toast(CH.stageToast, 2600);
   },
   stageWon(stats){
     this.stageStats = stats; const T = Town.T;
-    T.cards.add('生氣'); T.cards.add('丟臉');
-    const u = stats.used, m = [];
-    if (u.pause) m.push('暫停'); if (u.breath) m.push('深呼吸');
-    this.methods['生氣'] = (this.methods['生氣'] || []).concat(m);
-    if (u.say) this.methods['丟臉'] = (this.methods['丟臉'] || []).concat(['說出來']);
+    // 每章自己決定通關拿哪張卡、記下哪些方法；methodsOnly 為 true 時只補方法，不送卡
+    CH.win(stats.used, (card, ms, methodsOnly) => {
+      if (!methodsOnly) T.cards.add(card);
+      this.methods[card] = (this.methods[card] || []).concat(ms.filter(Boolean));
+    });
     this.settle();
   },
 
   /* ----- 結算 ----- */
   cardsHtml(){
     const T = Town.T;
-    return '<div class="cards">' + CARD_ORDER.map(w => {
+    // 這章的卡依序排；別章的卡（例如害怕章拿到的丟臉）接在後面，標出是哪一章的
+    const extra = T ? [...T.cards].filter(w => !CARD_ORDER.includes(w)) : [];
+    return '<div class="cards">' + CARD_ORDER.concat(extra).map(w => {
       if (!T || !T.cards.has(w)) return '<div class="ecard none">？</div>';
-      const c = CARDS[w], ms = [...new Set(this.methods[w] || [])];
-      return `<div class="ecard"><h3>${w}</h3><dl><dt>身體會怎樣</dt><dd>${c.body}</dd><dt>常常因為</dt><dd>${c.cause}</dd><dt>試過有用的方法</dt><dd>${ms.length ? ms.join('、') : '還沒試出來'}</dd></dl></div>`;
+      const c = CARDS[w], ms = [...new Set(this.methods[w] || [])], from = c.ch !== CH.n ? `<span class="from">第${'一二三四五'[c.ch-1]}章的卡</span>` : '';
+      return `<div class="ecard"><h3>${w}${from}</h3><dl><dt>身體會怎樣</dt><dd>${c.body}</dd><dt>常常因為</dt><dd>${c.cause}</dd><dt>試過有用的方法</dt><dd>${ms.length ? ms.join('、') : '還沒試出來'}</dd></dl></div>`;
     }).join('') + '</div>';
   },
   settle(){
@@ -206,17 +216,16 @@ const Game = {
     const avg = r.reduce((a, x) => a + x.typesAtName, 0) / n;
     const clueLine = avg >= 3.5 ? VERDICT.clue4 : avg >= 2.5 ? VERDICT.clue3 : VERDICT.clue2;
     const first = r.filter(x => x.tries === 1 && x.evTries === 1).length;
-    const nameLine = first === r.length ? VERDICT.nameBest : VERDICT.nameOk;
+    const nameLine = first === r.length ? VERDICT.nameBest(CH.base) : VERDICT.nameOk(CH.base);
     const great = r.filter(x => x.fit === 'great').length, fitLine = great >= Math.ceil(r.length * .6) ? VERDICT.fitHigh : VERDICT.fitLow;
     const rows = `<p>完成 <b>${r.length}/3</b> 個委託；第一次就說對情緒和證據：<b>${first}/${r.length}</b> 個</p>` + CASES.map((c, i) => {
       const x = r.find(y => y.idx === i);
       if (!x) return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：這次沒處理</p>`;
       return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：線索 ${x.typesAtName} 種，說了 ${x.tries} 次、挑證據 ${x.evTries} 次，陪伴方法「${x.choice}」<span class="fit ${x.fit}">${FIT[x.fit]}</span></p>`; }).join('');
-    const story = this.stageStats ? `<p>你走到社辦門口，發現自己的手已經放開了。</p>
-      <p>你在新的一頁寫下：「被撞的時候，我很生氣。後來發現，其實也很丟臉。」</p>
-      <p><span class="who">米亞：</span>歡迎正式加入偵探社。</p>` :
+    const line = x => typeof x === 'string' ? `<p>${esc(x)}</p>` : `<p><span class="who">${NAMES[x[0]]}：</span>${esc(x[1])}</p>`;
+    const story = this.stageStats ? CH.winStory.map(line).join('') :
       `<p>今天的調查先到這裡。你把找到的線索整理進偵探筆記。</p><p><span class="who">米亞：</span>沒做完的委託不會跑掉，下次再來。</p>`;
-    $('#settleCard').innerHTML = `<h2>結案報告・第三章 生氣</h2>${story}
+    $('#settleCard').innerHTML = `<h2>結案報告・${CH.event}</h2>${story}
       <h2 style="margin-top:16px">情緒圖鑑</h2>${this.cardsHtml()}
       <h2 style="margin-top:16px">偵探評語</h2>
       <p>${clueLine}</p><p>${nameLine}</p><p>${fitLine}</p>
@@ -230,16 +239,19 @@ const Game = {
   chapterSelect(){
     ['#settle','#paused','#panel'].forEach(id => $(id).classList.remove('on')); $('#dlg').hidden = true; this._dlg = null;
     this.mode = 'title'; this.paused = false; $('#titleScr').classList.remove('on');
-    $('#chList').innerHTML = CHAPTERS.map(c => `<button class="chc${c.ready ? '' : ' soon'}" id="ch${c.n}" ${c.ready ? '' : 'disabled'}>
-      <span class="che">${c.emoji}</span><b>第${'一二三四五'[c.n-1]}章</b><span class="chn">${c.name}</span><small>${c.words}</small><i>${c.ready ? '可以玩' : '製作中'}</i></button>`).join('');
-    CHAPTERS.filter(c => c.ready).forEach(c => $('#ch' + c.n).addEventListener('click', () => { $('#chapters').classList.remove('on'); this.begin(); }));
+    // 章節卡只寫事件，不寫情緒名稱：情緒要玩家自己找出來
+    $('#chList').innerHTML = CHAPTERS.map(c => { const ready = !!CH_DATA[c.n];
+      return `<button class="chc${ready ? '' : ' soon'}" id="ch${c.n}" ${ready ? '' : 'disabled'}>
+      <span class="che">${c.icon}</span><b>第${'一二三四五'[c.n-1]}章</b><span class="chn">${c.event}</span><small>${c.teaser}</small><i>${ready ? '可以玩' : '製作中'}</i></button>`; }).join('');
+    CHAPTERS.filter(c => CH_DATA[c.n]).forEach(c => $('#ch' + c.n).addEventListener('click', () => { $('#chapters').classList.remove('on'); this.begin(c.n); }));
     $('#chapters').classList.add('on');
   },
   toTitle(){
     ['#settle','#paused','#panel','#chapters'].forEach(id => $(id).classList.remove('on')); $('#dlg').hidden = true; this._dlg = null;
     this.mode = 'title'; this.paused = false; $('#titleScr').classList.add('on');
   },
-  begin(){
+  begin(n){
+    loadChapter(n || 3); buildSkills();
     this.skills = new Set(); this.methods = {}; this.stageStats = null; this.book = false;
     $('#titleScr').classList.remove('on'); $('#obj').hidden = false; $('#ctlTown').hidden = false; $('#ctlStage').hidden = true; $('#hud').hidden = true;
     S = null; Town.reset(); this.mode = 'town'; this.objective(); this.clueCount(); refreshSkills();
@@ -287,7 +299,6 @@ function hold(el, on, off){
 hold($('#left'), () => input.left = true, () => input.left = false);
 hold($('#right'), () => input.right = true, () => input.right = false);
 hold($('#jump'), () => { input.jump = true; input.jumpPressed = true; }, () => input.jump = false);
-document.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); useSkill(b.dataset.k); }));
 const KEYS = {ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right'};
 addEventListener('keydown', e => {
   if (Game.mode === 'town' && !Game.paused){
@@ -300,7 +311,7 @@ addEventListener('keydown', e => {
   if (Game.mode !== 'stage') return;
   if (KEYS[e.key]) input[KEYS[e.key]] = true;
   if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !e.repeat){ input.jump = true; input.jumpPressed = true; }
-  const sk = {'1':'breath','2':'pause','3':'angle','4':'say'}[e.key]; if (sk) useSkill(sk);
+  const sk = STAGE && STAGE.skills[+e.key - 1]; if (sk) useSkill(sk.k);
 });
 addEventListener('keyup', e => { if (KEYS[e.key]) input[KEYS[e.key]] = false; if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') input.jump = false; });
 function togglePause(force){
@@ -342,7 +353,7 @@ addEventListener('error', e => { $('#err').textContent = '錯誤代碼 E0：' + 
 fit(); requestAnimationFrame(loop);
 
 window.__GAME = {
-  Game, Town, CASES, input, useSkill, get S(){ return S; }, solid, LEVEL,
+  Game, Town, input, useSkill, solid, get S(){ return S; }, get CASES(){ return CASES; }, get LEVEL(){ return LEVEL; }, get STAGE(){ return STAGE; }, get CH(){ return CH; }, get CHAPTERS(){ return CHAPTERS; }, CH_DATA,
   step(n){ for (let i = 0; i < n; i++) tick(DT); },
   teleport(tx){ S.p.x = tx*TS; S.p.y = (GROUND-1)*TS; S.p.vx = S.p.vy = 0; S.cam = Math.max(0, S.p.x - VW*.4); },
 };

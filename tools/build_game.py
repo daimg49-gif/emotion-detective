@@ -1,28 +1,36 @@
-"""組出完整遊戲：python3 tools/build_game.py 情緒偵探社_v1.html
+"""組出完整遊戲：python3 tools/build_game.py 情緒偵探社_v6.html
 頁面外殼 src/parts/head.html
-闖關引擎 src/stage.html（取「① 內容表」到 draw() 結束）
-內容表   src/parts/content.js
+闖關引擎 src/parts/stage.js（讀 STAGE、LEVEL，換章時由 loadChapter 指定）
+共用內容 src/parts/content.js
+各章內容 src/parts/ch1.js、ch3.js、ch4.js（新章節加在 CHAPTER_FILES）
 校園地圖 src/parts/town.js
 主控     src/parts/game.js
-圖片     assets/game/（內嵌成 data URI）"""
-import base64, json, sys, pathlib, re
+圖片     assets/game/（內嵌成 data URI，鍵名對應 STAGE.types[].img 與 STAGE.bg）"""
+import base64, json, sys, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
-st = (root/'src/stage.html').read_text(encoding='utf-8')
-a = st.index('/* =========================================================\n   ① 內容表')
-b = st.index('/* =========================================================\n   入口')
-stage = st[a:b]
-old_win = stage[stage.index('function win(){'):stage.index('/* =========================================================\n   ③ 畫面')]
-stage = stage.replace(old_win, "function win(){ S.won = true; setTimeout(() => Game.stageWon(S.stats), 700); }\n\n")
-lock = "  if (!S.running || S.paused || S.won || S.cd[k] > 0) return false;\n"
-assert lock in stage
-stage = stage.replace(lock, lock + "  if (!Game.skills.has(k)){ toast('這招還沒學會。', 1400); return false; }\n")
-stage = stage.replace('   ① 內容表：關卡、怪物、提示句（換關卡只改這裡）', '   闖關引擎：關卡、怪物、提示句（換關卡只改 LEVEL、HINT、WRONG）')
-MAP = {'bg':'stage-bg.png', 'title':'title.jpg', 'normal':'angry-normal.png', 'puff':'angry-puff.png',
-       'calm':'angry-calm.png', 'knot':'frus-knot.png', 'loose':'frus-loose.png'}
-imgs = {k: ('data:image/jpeg;base64,' if f.endswith('.jpg') else 'data:image/png;base64,') + base64.b64encode((root/'assets/game'/f).read_bytes()).decode() for k, f in MAP.items()}
-stage = stage.replace('/*@ASSETS@*/', 'const IMG_SRC = ' + json.dumps(imgs) + ';')
-parts = [(root/'src/parts/head.html').read_text(encoding='utf-8'), "<script>\n(() => {\n'use strict';\n", stage,
-         (root/'src/parts/content.js').read_text(encoding='utf-8'), (root/'src/parts/town.js').read_text(encoding='utf-8'),
-         (root/'src/parts/game.js').read_text(encoding='utf-8'), "})();\n</script>\n</body>\n</html>\n"]
+CHAPTER_FILES = ['ch1.js', 'ch3.js', 'ch4.js']
+IMAGES = {
+    'title': 'title.jpg',
+    # 第三章
+    'bg3': 'stage-bg.png', 'angry-normal': 'angry-normal.png', 'angry-puff': 'angry-puff.png', 'angry-calm': 'angry-calm.png',
+    'frus-knot': 'frus-knot.png', 'frus-loose': 'frus-loose.png',
+    # 第一章
+    'bg1': 'ch1/stage-bg.png',
+    'excited-normal': 'ch1/excited-normal.png', 'excited-puff': 'ch1/excited-puff.png', 'excited-calm': 'ch1/excited-calm.png',
+    'proud-normal': 'ch1/proud-normal.png', 'proud-puff': 'ch1/proud-puff.png', 'proud-calm': 'ch1/proud-calm.png',
+    # 第四章
+    'bg4': 'ch4/stage-bg.png',
+    'anxious-normal': 'ch4/anxious-normal.png', 'anxious-puff': 'ch4/anxious-puff.png', 'anxious-calm': 'ch4/anxious-calm.png',
+    'nervous-normal': 'ch4/nervous-normal.png', 'nervous-puff': 'ch4/nervous-puff.png', 'nervous-calm': 'ch4/nervous-calm.png',
+}
+def uri(f):
+    kind = 'jpeg' if f.endswith('.jpg') else 'png'
+    return f'data:image/{kind};base64,' + base64.b64encode((root/'assets/game'/f).read_bytes()).decode()
+part = lambda name: (root/'src/parts'/name).read_text(encoding='utf-8')
+stage = part('stage.js')
+assert '/*@ASSETS@*/' in stage
+stage = stage.replace('/*@ASSETS@*/', 'const IMG_SRC = ' + json.dumps({k: uri(f) for k, f in IMAGES.items()}) + ';')
+parts = [part('head.html'), "<script>\n(() => {\n'use strict';\n", stage, part('content.js')] + \
+        [part(f) for f in CHAPTER_FILES] + [part('town.js'), part('game.js'), "})();\n</script>\n</body>\n</html>\n"]
 out = '\n'.join(parts)
 dst = root/sys.argv[1]; dst.write_text(out, encoding='utf-8'); print(dst, round(len(out)/1024), 'KB')
