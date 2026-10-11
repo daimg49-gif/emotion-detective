@@ -10,7 +10,7 @@ const file = process.argv[2], out = process.argv[3];
     const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
     await page.goto('file://' + file);
     await page.screenshot({path:`${out}/${vp.name}-intro.png`});
-    await page.tap('#startBtn');
+    await page.tap('#toIntro'); await page.tap('#startBtn');
     await page.waitForTimeout(300);
     // 按鈕大小
     const sizes = await page.$$eval('.btn,.sk,#pauseBtn', els => els.map(e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); }));

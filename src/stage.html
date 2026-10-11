@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>情緒偵探社 闖關原型</title>
+<style>
+:root{
+  --ink:#2B2D42; --mist:#8D99AE; --paper:#EDF2F4; --red:#EF233C; --orange:#F4A261;
+  --yellow:#E9C46A; --green:#2A9D8F; --violet:#7B6D8D; --pink:#F2B5D4;
+  color-scheme:dark;
+  --f:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#1b1c2b;color:var(--paper);font-family:var(--f);overflow:hidden;
+  touch-action:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+#wrap{position:fixed;left:0;right:0;top:0;bottom:var(--strip);display:grid;place-items:center}
+:root{--strip:100px}
+#cv{image-rendering:pixelated;image-rendering:crisp-edges;display:block;background:#2B2D42}
+
+/* HUD */
+#hud{position:fixed;left:12px;top:10px;display:flex;align-items:center;gap:10px;pointer-events:none}
+.hbox{background:rgba(43,45,66,.88);border:3px solid var(--ink);box-shadow:0 0 0 2px var(--mist);border-radius:6px;padding:6px 10px}
+#bar{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+#bar .track{width:160px;height:16px;background:#141522;border:2px solid var(--mist);position:relative}
+#bar .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--yellow),var(--orange),var(--red));transition:width .25s}
+#pauseBtn{position:fixed;right:12px;top:10px;width:56px;height:56px;font-size:22px;font-weight:700;color:var(--paper);background:rgba(43,45,66,.88);border:3px solid var(--mist);border-radius:8px;pointer-events:auto}
+
+/* touch controls */
+#controls{position:fixed;left:0;right:0;bottom:0;height:var(--strip);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;background:#141522;border-top:3px solid var(--ink)}
+.ctl{display:flex;gap:12px}
+.btn{pointer-events:auto;touch-action:none;width:72px;height:72px;border-radius:12px;border:3px solid var(--mist);
+  background:rgba(43,45,66,.82);color:var(--paper);font:700 28px var(--f);display:grid;place-items:center}
+.btn.on{background:rgba(233,196,106,.55);border-color:var(--yellow)}
+#jump{width:84px;height:84px;border-radius:50%;font-size:22px;border-color:var(--yellow)}
+#skills{display:flex;gap:10px}
+.sk{pointer-events:auto;touch-action:none;position:relative;width:88px;height:62px;border-radius:10px;border:3px solid var(--mist);
+  background:rgba(43,45,66,.86);color:var(--paper);font:700 16px var(--f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden}
+.sk i{font-style:normal;font-size:20px;line-height:1}
+.sk .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);height:0}
+.sk.locked{opacity:.35}
+.sk[data-k=breath]{border-color:#8ecae6}.sk[data-k=pause]{border-color:var(--yellow)}
+.sk[data-k=angle]{border-color:var(--violet)}.sk[data-k=say]{border-color:var(--pink)}
+
+/* toast & overlays */
+#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);max-width:min(92vw,560px);background:rgba(43,45,66,.95);
+  border:3px solid var(--yellow);border-radius:8px;padding:10px 16px;font-size:19px;line-height:1.5;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,21,34,.86);padding:20px;z-index:10}
+.ov.on{display:flex}
+.card{width:min(620px,100%);max-height:100%;overflow-y:auto;background:var(--ink);border:4px solid var(--mist);border-radius:10px;padding:22px 26px;box-shadow:0 6px 0 #0d0e18}
+.card h1,.card h2{margin:0 0 12px;font-size:28px;color:var(--yellow)}
+.card p{font-size:19px;line-height:1.75;margin:8px 0}
+.card .who{color:var(--pink);font-weight:700}
+.card .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.card button{min-height:56px;padding:0 24px;font:700 20px var(--f);border-radius:10px;border:3px solid var(--yellow);background:#6b5520;color:var(--paper)}
+.card button.ghost{background:transparent;border-color:var(--mist)}
+.card ul{font-size:18px;line-height:1.8;padding-left:22px;margin:8px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+.stats div{background:#3a3c56;border-radius:8px;padding:8px 12px;font-size:15px;color:var(--mist)}
+.stats b{display:block;font-size:24px;color:var(--paper)}
+#rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#1b1c2b;z-index:20;font-size:24px;text-align:center;padding:24px;line-height:1.7}
+@media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
+#titleScr{background:#2B2D42 center/cover no-repeat;align-items:flex-start;padding-top:6vh}
+.tcard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.eyebrow{margin:0;font-size:16px;letter-spacing:.2em;color:var(--paper);background:rgba(43,45,66,.7);padding:4px 12px;border-radius:4px}
+.gname{margin:0;font-size:clamp(44px,9vw,84px);font-weight:900;color:var(--yellow);letter-spacing:.08em;
+  text-shadow:4px 4px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
+.gsub{margin:0;font-size:22px;font-weight:700;color:var(--paper);text-shadow:2px 2px 0 var(--ink)}
+#toIntro{margin-top:14px;min-height:60px;padding:0 40px;font:700 24px var(--f);border-radius:12px;border:4px solid var(--ink);background:var(--yellow);color:var(--ink);box-shadow:0 5px 0 var(--ink)}
+#err{position:fixed;left:8px;bottom:4px;font-size:12px;color:var(--red);z-index:30}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv" width="480" height="272"></canvas></div>
+
+<div id="hud"><div class="hbox" id="bar"><span>我的情緒</span><span class="track"><span class="fill" id="barFill"></span></span></div></div>
+<button id="pauseBtn" aria-label="暫停">||</button>
+
+<div id="controls">
+<div class="ctl" id="ctlL">
+  <button class="btn" id="left" aria-label="往左">◀</button>
+  <button class="btn" id="right" aria-label="往右">▶</button>
+</div>
+<div id="skills">
+  <button class="sk" data-k="breath"><i>🫁</i>深呼吸<span class="cd"></span></button>
+  <button class="sk" data-k="pause"><i>✋</i>暫停<span class="cd"></span></button>
+  <button class="sk" data-k="angle"><i>🔄</i>換個角度<span class="cd"></span></button>
+  <button class="sk" data-k="say"><i>💬</i>說出來<span class="cd"></span></button>
+</div>
+<div class="ctl" id="ctlR"><button class="btn" id="jump" aria-label="跳">跳</button></div>
+</div>
+
+<div id="toast"></div>
+
+<div class="ov on" id="titleScr"><div class="tcard">
+  <p class="eyebrow">莒光資優班・認識情緒</p>
+  <h1 class="gname">情緒偵探社</h1>
+  <p class="gsub">終章闖關（試玩版）</p>
+  <button id="toIntro">開始</button>
+</div></div>
+
+<div class="ov" id="intro"><div class="card">
+  <h1>終章：換你當自己的偵探</h1>
+  <p>你抱著寫滿線索的偵探筆記走回社辦。轉角有人跑過來撞到你，筆記掉進水桶，字全部糊掉了。</p>
+  <p>撞你的人頭也沒回就跑了。走廊另一頭有人在笑。你感覺臉發燙，手握緊了。</p>
+  <p><span class="who">米亞：</span>等等！你的情緒冒出來了。走到社辦門口，路上的情緒小怪要用對方法。</p>
+  <ul>
+    <li>左下 ◀ ▶ 移動，右下「跳」跳躍</li>
+    <li>四個技能：深呼吸、暫停、換個角度、說出來</li>
+    <li>碰到怪物「我的情緒」會上升，滿了會回到上一面旗子</li>
+  </ul>
+  <div class="row"><button id="startBtn">開始闖關</button></div>
+</div></div>
+
+<div class="ov" id="paused"><div class="card">
+  <h2>暫停中</h2>
+  <div class="row"><button id="resumeBtn">繼續</button><button class="ghost" id="restartBtn">從頭再來</button></div>
+</div></div>
+
+<div class="ov" id="win"><div class="card">
+  <h2>你走到社辦門口了</h2>
+  <p>你發現自己的手已經放開了。</p>
+  <p>你在新的一頁寫下：「被撞的時候，我很生氣。後來發現，其實也很丟臉。」</p>
+  <p><span class="who">米亞：</span>歡迎正式加入偵探社。</p>
+  <div class="stats" id="winStats"></div>
+  <div class="row"><button id="againBtn">再玩一次</button></div>
+</div></div>
+
+<div id="rotate">請把平板橫著拿 ↻</div>
+<div id="err"></div>
+
+<script>
+(() => {
+'use strict';
+/* =========================================================
+   ① 內容表：關卡、怪物、提示句（換關卡只改這裡）
+   ========================================================= */
+const TS = 16, VW = 480, VH = 272, ROWS = 17, GROUND = 14;
+const LEVEL = {
+  w: 120,
+  start: 2,
+  pits: [[22,24],[50,59],[66,71],[98,103]],        // [起, 迄] 欄位，含兩端
+  platforms: [[27,12,3],[30,10,3],[93,11,2]],// [欄, 列, 長度]
+  hidden: [[51,12,2],[54,11,2],[57,12,2]],          // 暗區裡要「說出來」才看得見的平台
+  dark: [46,62],                                    // 暗區範圍（欄）
+  angry: [[12,9,16],[35,32,39],[86,84,91],[109,106,112]], // [出生欄, 巡邏左, 巡邏右]
+  frustrated: [{x:65, bridge:[66,71]}, {x:97, bridge:[98,103]}],
+  checkpoints: [2,44,81],
+  door: 116,
+};
+const HINT = {
+  angry: '硬撞只會讓它更大。試試看先停下來？',
+  frustrated: '跳不過去，就換個角度。',
+  dark: '看不見路的時候，把感覺說出來。',
+  pit: '掉下去了沒關係，從旗子那裡再來一次。',
+};
+const WRONG = {
+  angry_angle: '生氣怪還在冒煙……它需要的不是換個角度，是先停下來。',
+  angry_say: '說出來了，可是生氣怪還在膨脹。先讓身體停一下試試？',
+  frustrated_breath: '挫折怪還是打著結。卡住的時候，也許要換個角度。',
+  frustrated_pause: '停下來了，可是路還是被擋住。換個角度看看？',
+  dark_breath: '呼吸平穩了，可是還是看不見路。把感覺說出來？',
+  dark_pause: '停下來了，四周還是黑的。把感覺說出來？',
+  none: '附近沒有情緒小怪，先往前走吧。',
+};
+/*@ASSETS@*/
+const SKILL = { breath:{cd:4}, pause:{cd:3}, angle:{cd:2}, say:{cd:3} };
+const SAY_LINES = ['我很生氣！','我覺得很丟臉！','我被撞到很不舒服！'];
+const COL = { ink:'#2B2D42', mist:'#8D99AE', paper:'#EDF2F4', red:'#EF233C', orange:'#F4A261', yellow:'#E9C46A',
+  green:'#2A9D8F', violet:'#7B6D8D', pink:'#F2B5D4', grass:'#5fae5a', dirt:'#8a5a3c', dirt2:'#6e452d', skin:'#F2C9A0', cap:'#7a4a2a', pants:'#3d4a6b' };
+
+/* =========================================================
+   ② 規則：物理、怪物、技能、情緒條
+   ========================================================= */
+const G = 900, RUN = 92, JUMP = 300, COYOTE = .1, BUFFER = .12;
+let grid, S;
+const input = { left:false, right:false, jump:false, jumpPressed:false };
+
+function buildGrid(){
+  grid = Array.from({length:ROWS}, () => new Uint8Array(LEVEL.w));
+  for (let x = 0; x < LEVEL.w; x++) for (let y = GROUND; y < ROWS; y++) grid[y][x] = 1;
+  LEVEL.pits.forEach(([a,b]) => { for (let x = a; x <= b; x++) for (let y = GROUND; y < ROWS; y++) grid[y][x] = 0; });
+  LEVEL.platforms.forEach(([x,y,n]) => { for (let i = 0; i < n; i++) grid[y][x+i] = 1; });
+  LEVEL.hidden.forEach(([x,y,n]) => { for (let i = 0; i < n; i++) grid[y][x+i] = 3; }); // 3 = 暗區平台，點亮後才算實心
+  for (let y = 0; y < ROWS; y++) grid[y][0] = 1;
+}
+function solid(tx, ty){
+  if (tx < 0 || tx >= LEVEL.w) return true;
+  if (ty < 0) return false;
+  if (ty >= ROWS) return false;
+  const v = grid[ty][tx];
+  return v === 1 || v === 2 || (v === 3 && S.lit);
+}
+function newState(){
+  return {
+    t:0, running:false, won:false, paused:false,
+    p:{x:LEVEL.start*TS, y:(GROUND-1)*TS, vx:0, vy:0, w:10, h:16, face:1, ground:false, coyote:0, buf:0, anim:0, inv:0, pauseT:0},
+    bar:20, cp:LEVEL.checkpoints[0], cpReached:{[LEVEL.checkpoints[0]]:true},
+    cd:{breath:0,pause:0,angle:0,say:0}, slowT:0, lit:false, litR:0, shake:0, cam:0,
+    fx:[], say:null, lastCause:null, calmAt:0, respawnAt:0,
+    angry: LEVEL.angry.map(([x,a,b]) => ({x:x*TS, y:(GROUND)*TS, a:a*TS, b:b*TS, dir:1, state:'normal', h:MON_H.normal})),
+    fr: LEVEL.frustrated.map(f => ({x:f.x*TS, bridge:f.bridge, state:'knot', k:0})),
+    stats:{hits:0, falls:0, resets:0, used:{breath:0,pause:0,angle:0,say:0}, wrong:0},
+  };
+}
+function reset(){
+  buildGrid(); S = newState();
+  S.fr.forEach(f => setWall(f, true));
+  updateBar(); refreshSkills();
+}
+function setWall(f, on){ const tx = Math.round(f.x/TS); for (let y = GROUND-5; y < GROUND; y++) for (let x = tx-2; x <= tx; x++) grid[y][x] = on ? 2 : 0; }
+const wallMid = f => f.x - 8;
+
+function hurt(amount, cause, dir){
+  const p = S.p; if (p.inv > 0 || p.pauseT > 0) return;
+  S.bar = Math.min(100, S.bar + amount); S.lastCause = cause; S.stats.hits++;
+  p.vx = -dir * 170; p.vy = -200; p.inv = 1.1; p.pauseT = 0;
+  S.shake = .2; updateBar();
+  if (S.bar >= 100) overload();
+}
+function overload(){
+  S.shake = .6; S.stats.resets++;
+  S.respawnAt = S.t + .45;
+}
+function respawn(){
+  const p = S.p; p.x = S.cp*TS + 2; p.y = (GROUND-1)*TS; p.vx = p.vy = 0; p.inv = 1; p.pauseT = 0;
+  S.bar = 30; updateBar();
+}
+function calmNear(r){
+  let n = 0;
+  S.angry.forEach(m => { if (m.state !== 'calm' && Math.abs(m.x - S.p.x) < r){ m.state = 'calm'; n++; burst(m.x, m.y-10, COL.pink, 10); } });
+  return n;
+}
+function nearTarget(){
+  const px = S.p.x;
+  const a = S.angry.find(m => m.state !== 'calm' && Math.abs(m.x - px) < 130);
+  const f = S.fr.find(m => m.state === 'knot' && Math.abs(m.x - px) < 100);
+  const inDark = !S.lit && px/TS > LEVEL.dark[0]-3 && px/TS < LEVEL.dark[1];
+  return a ? 'angry' : f ? 'frustrated' : inDark ? 'dark' : null;
+}
+function useSkill(k){
+  if (!S.running || S.paused || S.won || S.cd[k] > 0) return false;
+  const target = nearTarget(); S.cd[k] = SKILL[k].cd; S.stats.used[k]++;
+  const p = S.p;
+  if (k === 'breath'){
+    S.slowT = 3; S.bar = Math.max(0, S.bar - 15); updateBar();
+    ring(p.x+5, p.y+8, '#8ecae6');
+    if (target === 'angry') S.calmAt = S.t + .9;
+    else if (target) wrong(target + '_breath');
+  } else if (k === 'pause'){
+    p.pauseT = 2; p.vx = 0; ring(p.x+5, p.y+8, COL.yellow);
+    if (target && target !== 'angry') wrong(target + '_pause');
+  } else if (k === 'angle'){
+    const f = S.fr.find(m => m.state === 'knot' && Math.abs(m.x - p.x) < 100);
+    if (f){ f.state = 'untie'; f.k = 0; setWall(f, false); burst(wallMid(f), (GROUND-3)*TS, COL.violet, 16); }
+    else if (target) wrong(target + '_angle');
+    spin(p.x+5, p.y+8);
+  } else if (k === 'say'){
+    S.say = {txt:SAY_LINES[S.stats.used.say % SAY_LINES.length], t:1.6};
+    S.bar = Math.max(0, S.bar - 10); updateBar();
+    if (target === 'dark'){ S.lit = true; burst(p.x, p.y, COL.yellow, 24); }
+    else if (target) wrong(target + '_say');
+  }
+  if (!target) toast(WRONG.none, 1600);
+  refreshSkills();
+  return true;
+}
+function wrong(key){ if (WRONG[key]){ toast(WRONG[key], 2600); S.stats.wrong++; } }
+
+function moveBody(b, dt){
+  // X
+  b.x += b.vx * dt;
+  let x0 = Math.floor(b.x/TS), x1 = Math.floor((b.x+b.w-1)/TS), y0 = Math.floor(b.y/TS), y1 = Math.floor((b.y+b.h-1)/TS);
+  for (let ty = y0; ty <= y1; ty++){
+    if (b.vx > 0 && solid(x1, ty)){ b.x = x1*TS - b.w; b.vx = 0; break; }
+    if (b.vx < 0 && solid(x0, ty)){ b.x = (x0+1)*TS; b.vx = 0; break; }
+  }
+  // Y
+  b.y += b.vy * dt; b.ground = false;
+  x0 = Math.floor(b.x/TS); x1 = Math.floor((b.x+b.w-1)/TS); y0 = Math.floor(b.y/TS); y1 = Math.floor((b.y+b.h-1)/TS);
+  for (let tx = x0; tx <= x1; tx++){
+    if (b.vy > 0 && solid(tx, y1)){ b.y = y1*TS - b.h; b.vy = 0; b.ground = true; break; }
+    if (b.vy < 0 && solid(tx, y0)){ b.y = (y0+1)*TS; b.vy = 0; break; }
+  }
+}
+
+function update(dt){
+  if (!S.running || S.paused || S.won) return;
+  S.t += dt;
+  const p = S.p, wdt = S.slowT > 0 ? dt*.35 : dt;
+  for (const k in S.cd) S.cd[k] = Math.max(0, S.cd[k] - dt);
+  S.slowT = Math.max(0, S.slowT - dt); p.inv = Math.max(0, p.inv - dt); S.shake = Math.max(0, S.shake - dt);
+
+  if (S.respawnAt && S.t >= S.respawnAt){ S.respawnAt = 0; respawn(); toast(HINT[S.lastCause] || HINT.pit, 3200); }
+  if (S.calmAt && S.t >= S.calmAt){ S.calmAt = 0; if (calmNear(130)) toast('生氣怪慢慢縮小了。', 1400); }
+  // 暫停技能：原地站 2 秒
+  if (p.pauseT > 0){
+    p.pauseT -= dt; p.vx = 0; S.bar = Math.max(0, S.bar - 6*dt);
+    if (p.pauseT <= 0){ p.pauseT = 0; const n = calmNear(130); if (n) toast('生氣怪慢慢縮小了。', 1400); updateBar(); }
+  } else {
+    const dir = (input.right?1:0) - (input.left?1:0);
+    if (p.inv < .8) p.vx = dir * RUN;
+    if (dir) p.face = dir;
+  }
+  // 跳躍（含土狼時間與預按）
+  if (input.jumpPressed){ p.buf = BUFFER; input.jumpPressed = false; }
+  p.buf = Math.max(0, p.buf - dt);
+  p.coyote = p.ground ? COYOTE : Math.max(0, p.coyote - dt);
+  if (p.buf > 0 && p.coyote > 0 && p.pauseT <= 0){ p.vy = -JUMP; p.buf = 0; p.coyote = 0; }
+  if (!input.jump && p.vy < -120) p.vy = -120; // 放開早一點，跳得低一點
+  p.vy = Math.min(p.vy + G*dt, 520);
+  moveBody(p, dt);
+  p.anim += Math.abs(p.vx) * dt;
+
+  // 掉坑
+  if (p.y > VH + 20){ S.stats.falls++; S.lastCause = (p.x/TS > LEVEL.dark[0] && p.x/TS < LEVEL.dark[1] && !S.lit) ? 'dark' : 'pit';
+    S.bar = Math.min(95, S.bar + 10); respawn(); toast(HINT[S.lastCause], 2600); }
+
+  // 檢查點
+  LEVEL.checkpoints.forEach(c => { if (!S.cpReached[c] && p.x > c*TS){ S.cpReached[c] = true; S.cp = c; burst(c*TS+4, (GROUND-2)*TS, COL.yellow, 12); } });
+
+  // 生氣怪
+  S.angry.forEach(m => {
+    if (m.state === 'calm'){ m.h += (MON_H.calm - m.h) * Math.min(1, dt*6); return; }
+    const near = Math.abs(m.x - p.x) < 60 && Math.abs(m.y - (p.y+p.h)) < 70;
+    m.state = near ? 'puff' : 'normal';
+    m.h += ((near ? MON_H.puff : MON_H.normal) - m.h) * Math.min(1, wdt*8);
+    const watching = p.pauseT > 0 && Math.abs(m.x - p.x) < 130;
+    if (!watching) m.x += m.dir * 22 * wdt; if (m.x < m.a){ m.x = m.a; m.dir = 1; } if (m.x > m.b){ m.x = m.b; m.dir = -1; }
+    const hw = m.h*.42, hh = m.h*.9;
+    if (p.x < m.x+hw && p.x+p.w > m.x-hw && p.y < m.y && p.y+p.h > m.y-hh){
+      if (p.inv > 0 || p.pauseT > 0){ p.x = p.x + p.w/2 < m.x ? m.x - hw - p.w : m.x + hw; p.vx = 0; } // 沒冷靜下來前過不去
+      else hurt(m.state === 'puff' ? 30 : 15, 'angry', p.x < m.x ? 1 : -1);
+    }
+    if (m.state === 'puff' && Math.random() < wdt*6) S.fx.push({k:'steam', x:m.x+(Math.random()*10-5), y:m.y-hh-2, vy:-20, t:.8});
+  });
+  // 挫折怪：撞到牆會被彈開
+  S.fr.forEach(f => {
+    if (f.state === 'untie'){ f.k = Math.min(1, f.k + dt*1.4); if (f.k >= 1){ f.state = 'bridge'; for (let x = f.bridge[0]; x <= f.bridge[1]; x++) grid[GROUND][x] = 1; } return; }
+    if (f.state !== 'knot') return;
+    if (Math.abs((p.x+p.w/2) - wallMid(f)) < 32 && p.y+p.h > (GROUND-5)*TS) hurt(10, 'frustrated', p.x < f.x ? 1 : -1);
+  });
+
+  // 終點
+  if (p.x >= LEVEL.door*TS){ win(); }
+
+  // 特效
+  S.fx.forEach(e => { e.t -= dt; if (e.vy) e.y += e.vy*dt; if (e.vx) e.x += e.vx*dt; if (e.r != null) e.r += e.dr*dt; });
+  S.fx = S.fx.filter(e => e.t > 0);
+  if (S.say){ S.say.t -= dt; if (S.say.t <= 0) S.say = null; }
+  if (S.lit) S.litR = Math.min(1, S.litR + dt*1.5);
+
+  // 鏡頭
+  const target = p.x - VW*.4; S.cam += (target - S.cam) * Math.min(1, dt*6);
+  S.cam = Math.max(0, Math.min(LEVEL.w*TS - VW, S.cam));
+}
+function burst(x, y, c, n){ for (let i = 0; i < n; i++){ const a = Math.random()*Math.PI*2, v = 30+Math.random()*60; S.fx.push({k:'dot', x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, c, t:.6+Math.random()*.3}); } }
+function ring(x, y, c){ S.fx.push({k:'ring', x, y, r:6, dr:70, c, t:.9}); }
+function spin(x, y){ S.fx.push({k:'spin', x, y, t:.6}); }
+function win(){
+  S.won = true;
+  const u = S.stats.used, m = Math.floor(S.t/60), s = Math.floor(S.t%60);
+  $('#winStats').innerHTML = [['花了', `${m} 分 ${s} 秒`], ['碰到怪物', S.stats.hits + ' 次'], ['回到旗子', (S.stats.resets + S.stats.falls) + ' 次'],
+    ['深呼吸', u.breath + ' 次'], ['暫停', u.pause + ' 次'], ['換個角度', u.angle + ' 次'], ['說出來', u.say + ' 次']]
+    .map(([a,b]) => `<div>${a}<b>${b}</b></div>`).join('');
+  setTimeout(() => $('#win').classList.add('on'), 500);
+}
+
+/* =========================================================
+   ③ 畫面：背景、地形、角色、怪物（全部程式畫）
+   ========================================================= */
+const cv = document.getElementById('cv'), g = cv.getContext('2d');
+g.imageSmoothingEnabled = false;
+const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+const O = (x, y, w, h, c) => { R(x-1, y-1, w+2, h+2, COL.ink); R(x, y, w, h, c); };
+const MON_H = {normal:30, puff:52, calm:22};
+const IMGS = {};
+if (typeof IMG_SRC !== 'undefined') for (const k in IMG_SRC){ const im = new Image(); im.onload = () => IMGS[k] = im; im.src = IMG_SRC[k]; }
+const SKY = ['#3d3561','#5a4373','#7d527c','#a8667a','#cf8577','#e9a36e','#f2c27a'];
+
+function drawBg(cam){
+  if (IMGS.bg){ const w = IMGS.bg.width, ox = -Math.round(cam*.3) % w; for (let x = ox; x < VW; x += w) g.drawImage(IMGS.bg, x, 0, w, VH); return; }
+  const band = VH / SKY.length;
+  SKY.forEach((c, i) => R(0, i*band, VW, band+1, c));
+  R(VW*.72, 150, 34, 34, '#ffd98a'); // 夕陽
+  // 遠山
+  const ox1 = -(cam*.15) % 160;
+  for (let i = -1; i < 5; i++){ const bx = ox1 + i*160;
+    for (let k = 0; k < 40; k++){ const h = 20 + Math.round(18*Math.sin((k+i*7)/5)); R(bx + k*4, 200 - h, 4, h+80, '#6a4a6e'); } }
+  // 校舍剪影
+  const ox2 = -(cam*.35) % 240;
+  for (let i = -1; i < 4; i++){ const bx = ox2 + i*240;
+    R(bx+20, 130, 150, 100, '#8a5d6e'); R(bx+20, 124, 150, 6, '#7a4e60');
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++) R(bx+32 + c*23, 142 + r*30, 12, 14, '#f2c27a');
+    R(bx+190, 160, 10, 70, '#6e4a5a'); R(bx+180, 140, 30, 26, '#5f8a5a'); }
+}
+function drawTiles(cam){
+  const x0 = Math.floor(cam/TS), x1 = Math.min(LEVEL.w-1, x0 + Math.ceil(VW/TS) + 1);
+  for (let ty = 0; ty < ROWS; ty++) for (let tx = x0; tx <= x1; tx++){
+    const v = grid[ty][tx], sx = tx*TS - cam, sy = ty*TS;
+    if (v !== 1 && ty >= GROUND){ R(sx, sy, TS, TS, ty === GROUND ? '#2a2b40' : '#1b1c2b'); continue; }
+    if (v === 1){
+      const top = ty === 0 || grid[ty-1][tx] !== 1;
+      R(sx, sy, TS, TS, (tx+ty)%2 ? COL.dirt : COL.dirt2);
+      R(sx+3, sy+7, 2, 2, '#a0704c'); R(sx+10, sy+11, 2, 2, '#5a3826');
+      if (top){ R(sx, sy, TS, 5, COL.grass); R(sx, sy+5, TS, 1, '#3f7a3c'); R(sx+2, sy-1, 2, 1, COL.grass); R(sx+9, sy-1, 2, 1, COL.grass); }
+      if (tx === 0) R(sx, sy, TS, TS, COL.ink);
+    } else if (v === 3 && S.lit){
+      const a = S.litR; g.globalAlpha = a;
+      R(sx, sy, TS, 6, COL.yellow); R(sx, sy+6, TS, 3, COL.orange); R(sx, sy, TS, 1, '#fff3c4');
+      g.globalAlpha = 1;
+    }
+  }
+  // 挫折怪變成的橋
+  S.fr.forEach(f => { if (f.state === 'knot') return;
+    const a = f.bridge[0]*TS - cam, len = (f.bridge[1]-f.bridge[0]+1)*TS * (f.state === 'bridge' ? 1 : f.k);
+    for (let i = 0; i < len; i += 4){ const wy = GROUND*TS + Math.round(Math.sin((i+S.t*30)/10)); R(a + i, wy, 4, 5, i%8 ? COL.pink : COL.violet); }
+  });
+}
+function drawFlag(x, on){ R(x, (GROUND-3)*TS, 2, 48, COL.ink); O(x+2, (GROUND-3)*TS, 12, 8, on ? COL.yellow : COL.mist); }
+function drawDoor(x){
+  const y = (GROUND-4)*TS;
+  O(x, y, 40, 64, '#b07a4a'); R(x+4, y+4, 32, 56, '#8a5a34'); R(x+30, y+34, 3, 3, COL.yellow);
+  O(x+6, y-18, 28, 14, COL.paper);                     // 招牌
+  R(x+12, y-15, 7, 7, COL.ink); R(x+13, y-14, 5, 5, '#8ecae6'); R(x+19, y-9, 5, 2, COL.ink); // 放大鏡
+}
+function drawPlayer(cam){
+  const p = S.p; if (p.inv > 0 && Math.floor(p.inv*12)%2) return;
+  const cx = Math.round(p.x + p.w/2 - cam), top = Math.round(p.y), f = p.face;
+  const X = (dx, w) => f > 0 ? cx + dx : cx - dx - w;   // 依面向翻轉
+  const P = (dx, y, w, h, c) => O(X(dx, w), top + y, w, h, c);
+  const air = !p.ground, paused = p.pauseT > 0;
+  const step = Math.floor(p.anim / 7) % 4;              // 走路四格：站、前跨、站、後跨
+  // 腿
+  if (air){ P(-4, 12, 3, 3, COL.pants); P(1, 11, 3, 3, COL.pants); }
+  else if (step === 1){ P(-5, 12, 3, 4, COL.pants); P(2, 12, 3, 4, COL.pants); }
+  else if (step === 3){ P(-3, 12, 3, 4, COL.pants); P(0, 13, 3, 3, COL.pants); }
+  else { P(-4, 12, 3, 4, COL.pants); P(1, 12, 3, 4, COL.pants); }
+  // 身體與手
+  P(-4, 8, 8, 5, COL.green);
+  if (paused){ P(-6, 8, 2, 5, COL.green); P(4, 8, 2, 5, COL.green); }
+  else { const sw = (!air && (step === 1 || step === 3)) ? (step === 1 ? -1 : 1) : 0; P(-6, 8 + Math.max(0,sw), 2, 4, COL.green); P(4, 8 + Math.max(0,-sw), 2, 4, COL.green); }
+  // 頭
+  P(-4, 2, 8, 6, COL.skin); R(X(-4, 2), top+2, 2, 3, '#3b2a20');
+  if (paused) R(X(1, 2), top+5, 2, 1, COL.ink); else R(X(1, 1), top+4, 1, 2, COL.ink);
+  // 偵探帽
+  P(-5, -1, 9, 3, COL.cap); R(X(3, 4), top+2, 4, 1, COL.cap);
+  // 暫停倒數圈
+  if (paused){ g.strokeStyle = COL.yellow; g.lineWidth = 2; g.beginPath(); g.arc(cx, top+7, 13, -Math.PI/2, -Math.PI/2 + Math.PI*2*(1 - p.pauseT/2)); g.stroke(); }
+}
+function drawAngry(m, cam){
+  const im = IMGS[m.state === 'calm' ? 'calm' : m.state === 'puff' ? 'puff' : 'normal'];
+  if (im){ const h = Math.round(m.h), w = Math.round(im.width * h / im.height); g.drawImage(im, Math.round(m.x - w/2 - cam), Math.round(m.y - h), w, h); return; }
+  const s = m.h / MON_H.normal;
+  const w = Math.round(14*s), h = Math.round(12*s), x = Math.round(m.x - w/2 - cam), y = Math.round(m.y - h);
+  const calm = m.state === 'calm', body = calm ? COL.pink : (m.state === 'puff' ? '#ff4b3e' : COL.red);
+  if (!calm){ // 頭頂火苗
+    const fl = Math.max(2, Math.round(3*s));
+    [[.15,1],[.45,1.6],[.75,1]].forEach(([fx, fh]) => O(x + w*fx, y - fl*fh, Math.max(2, Math.round(2*s)), fl*fh, COL.orange));
+  }
+  O(x, y, w, h, body); R(x+1, y+1, w-2, 2, calm ? '#fbd5e6' : '#ff7b6e');
+  const ex = Math.round(w*.25), ey = y + Math.round(h*.35), es = Math.max(1, Math.round(s));
+  if (calm){ R(x+ex, ey+1, 3*es, 1, COL.ink); R(x+w-ex-3*es, ey+1, 3*es, 1, COL.ink); R(x+w/2-2, y+h-4, 4, 1, COL.ink); }
+  else {
+    R(x+ex, ey, 2*es, 2*es, COL.ink); R(x+w-ex-2*es, ey, 2*es, 2*es, COL.ink);
+    R(x+ex-1, ey-2*es, es, es, COL.ink); R(x+ex, ey-es, 2*es, es, COL.ink);            // 左眉往內下斜
+    R(x+w-ex-2*es, ey-es, 2*es, es, COL.ink); R(x+w-ex, ey-2*es, es, es, COL.ink);    // 右眉
+    R(x+w/2-3*es, y+h-4*es, 6*es, es, COL.ink);
+  }
+}
+function disc(cx, cy, r, c){ for (let dy = -r; dy <= r; dy++){ const w = Math.floor(Math.sqrt(r*r - dy*dy)); R(cx - w, cy + dy, w*2 + 1, 1, c); } }
+function drawFrustrated(f, cam){
+  if (f.state === 'bridge') return;
+  const k = f.state === 'untie' ? f.k : 0, baseY = GROUND*TS;
+  if (IMGS.knot){
+    const kn = IMGS.knot, cx = Math.round(wallMid(f) - cam);
+    g.globalAlpha = 1 - k; g.drawImage(kn, cx - kn.width/2, baseY - kn.height + 2); g.globalAlpha = 1;
+    if (k > 0 && IMGS.loose){ const lo = IMGS.loose, bx = f.bridge[0]*TS - cam, len = (f.bridge[1]-f.bridge[0]+1)*TS;
+      g.drawImage(lo, Math.round(bx + len*k - lo.width/2), baseY - lo.height - 4); }
+    return;
+  }
+  const x = Math.round(f.x - cam);
+  g.globalAlpha = 1 - k;
+  for (let i = 0; i < 5; i++){
+    const cy = baseY - 9 - i*15, r = Math.round(8 - k*4), cx = x + 8 + Math.round(Math.sin(i*1.7 + S.t*2));
+    disc(cx, cy, r + 1, COL.ink); disc(cx, cy, r, COL.violet); disc(cx - 2, cy - 2, Math.max(1, r - 5), '#a99bba');
+    // 糾纏的毛線
+    for (let a = 0; a < 6.2; a += .35){ const rr = r - 2 - (i + a*2) % 3; R(cx + Math.round(Math.cos(a*1.7 + i)*rr), cy + Math.round(Math.sin(a*2.3 + i)*rr*.8), 1, 1, '#5e5270'); }
+    if (i === 2){ R(cx - 4, cy - 2, 2, 1, COL.ink); R(cx + 2, cy - 2, 2, 1, COL.ink); R(cx - 3, cy + 3, 2, 1, COL.ink); R(cx - 1, cy + 4, 3, 1, COL.ink); }
+  }
+  // 從牆上垂下的線頭
+  R(x + 14, baseY - 40, 1, 10, '#a99bba'); R(x + 15, baseY - 31, 2, 1, '#a99bba');
+  g.globalAlpha = 1;
+}
+function drawDark(cam){
+  if (S.litR >= 1) return;
+  const a = LEVEL.dark[0]*TS - cam, b = (LEVEL.dark[1]+1)*TS - cam;
+  if (b < 0 || a > VW) return;
+  const p = S.p, cx = p.x + 5 - cam, cy = p.y + 8;
+  g.save();
+  g.beginPath(); g.rect(a, 0, b - a, VH); g.clip();
+  g.beginPath(); g.rect(a, 0, b - a, VH);
+  g.arc(cx, cy, 34 + S.litR*400, 0, Math.PI*2, true);
+  g.fillStyle = `rgba(14,14,30,${.94*(1 - S.litR)})`; g.fill('evenodd');
+  g.restore();
+}
+function drawFx(cam){
+  S.fx.forEach(e => {
+    if (e.k === 'dot') R(e.x - cam, e.y, 2, 2, e.c);
+    else if (e.k === 'steam'){ g.globalAlpha = Math.min(1, e.t*1.5); R(e.x - cam, e.y, 3, 3, '#d8d8e0'); g.globalAlpha = 1; }
+    else if (e.k === 'ring'){ g.globalAlpha = Math.min(1, e.t); g.strokeStyle = e.c; g.lineWidth = 2; g.beginPath(); g.arc(e.x - cam, e.y, e.r, 0, Math.PI*2); g.stroke(); g.globalAlpha = 1; }
+    else if (e.k === 'spin'){ g.strokeStyle = COL.violet; g.lineWidth = 2; const a = (1 - e.t/.6)*Math.PI*2; g.beginPath(); g.arc(e.x - cam, e.y, 12, a, a + Math.PI*1.4); g.stroke(); }
+  });
+  if (S.say){
+    const p = S.p, t = S.say.txt; g.font = '12px "PingFang TC","Noto Sans TC",sans-serif';
+    const w = Math.ceil(g.measureText(t).width) + 10, x = Math.round(p.x + 5 - cam - w/2), y = Math.round(p.y - 22);
+    O(x, y, w, 15, COL.paper); R(x + w/2 - 1, y + 15, 3, 3, COL.paper);
+    g.fillStyle = COL.ink; g.textBaseline = 'top'; g.fillText(t, x + 5, y + 2);
+  }
+}
+function draw(){
+  const cam = Math.round(S.cam + (S.shake > 0 ? (Math.random()*6 - 3) : 0));
+  drawBg(cam); drawTiles(cam);
+  LEVEL.checkpoints.forEach(c => drawFlag(c*TS - cam, !!S.cpReached[c]));
+  drawDoor(LEVEL.door*TS - cam);
+  S.fr.forEach(f => drawFrustrated(f, cam));
+  S.angry.forEach(m => drawAngry(m, cam));
+  drawPlayer(cam);
+  drawDark(cam);
+  drawFx(cam);
+  if (S.slowT > 0){ g.fillStyle = 'rgba(142,202,230,.12)'; g.fillRect(0, 0, VW, VH); }
+}
+
+/* =========================================================
+   入口：觸控按鈕、鍵盤、畫面縮放
+   ========================================================= */
+const $ = s => document.querySelector(s);
+function fit(){
+  const s = Math.min(innerWidth / VW, (innerHeight - 100) / VH);
+  cv.style.width = Math.floor(VW*s) + 'px'; cv.style.height = Math.floor(VH*s) + 'px';
+}
+addEventListener('resize', fit);
+function hold(el, on, off){
+  el.addEventListener('pointerdown', e => { e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('on'); on(); });
+  const up = e => { el.classList.remove('on'); off(); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+}
+hold($('#left'), () => input.left = true, () => input.left = false);
+hold($('#right'), () => input.right = true, () => input.right = false);
+hold($('#jump'), () => { input.jump = true; input.jumpPressed = true; }, () => input.jump = false);
+document.querySelectorAll('.sk').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); useSkill(b.dataset.k); }));
+const KEYS = {ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right'};
+addEventListener('keydown', e => {
+  if (KEYS[e.key]) input[KEYS[e.key]] = true;
+  if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !e.repeat){ input.jump = true; input.jumpPressed = true; }
+  const sk = {'1':'breath','2':'pause','3':'angle','4':'say'}[e.key]; if (sk) useSkill(sk);
+  if (e.key === 'p' || e.key === 'Escape') togglePause();
+});
+addEventListener('keyup', e => { if (KEYS[e.key]) input[KEYS[e.key]] = false; if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') input.jump = false; });
+
+let toastT = null;
+function toast(msg, ms){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2200); }
+function updateBar(){ $('#barFill').style.width = S.bar + '%'; }
+function refreshSkills(){ document.querySelectorAll('.sk').forEach(b => { const k = b.dataset.k; b.querySelector('.cd').style.height = (S.cd[k] / SKILL[k].cd * 100) + '%'; }); }
+function togglePause(force){
+  if (!S.running || S.won) return;
+  S.paused = force != null ? force : !S.paused; $('#paused').classList.toggle('on', S.paused);
+}
+$('#pauseBtn').addEventListener('click', () => togglePause());
+$('#resumeBtn').addEventListener('click', () => togglePause(false));
+$('#restartBtn').addEventListener('click', () => { $('#paused').classList.remove('on'); start(); });
+$('#startBtn').addEventListener('click', start);
+$('#toIntro').addEventListener('click', () => { $('#titleScr').classList.remove('on'); $('#intro').classList.add('on'); });
+if (typeof IMG_SRC !== 'undefined' && IMG_SRC.title) $('#titleScr').style.backgroundImage = `url(${IMG_SRC.title})`;
+$('#againBtn').addEventListener('click', () => { $('#win').classList.remove('on'); start(); });
+function start(){ reset(); S.running = true; ['#titleScr','#intro','#win','#paused'].forEach(id => $(id).classList.remove('on')); toast('先往右走。碰到生氣怪之前，想想該用哪一招。', 2600); }
+
+/* =========================================================
+   地基：固定步長主迴圈；測試積木：window.__GAME
+   ========================================================= */
+const DT = 1/60; let last = performance.now(), acc = 0;
+function loop(now){
+  acc += Math.min(.1, (now - last)/1000); last = now;
+  try { while (acc >= DT){ update(DT); acc -= DT; } draw(); refreshSkills(); }
+  catch (err){ $('#err').textContent = 'E1 ' + err.message; throw err; }
+  requestAnimationFrame(loop);
+}
+addEventListener('error', e => { $('#err').textContent = '錯誤代碼 E0：' + e.message; });
+reset(); fit(); requestAnimationFrame(loop);
+
+window.__GAME = {
+  get S(){ return S; }, LEVEL, input, useSkill, start, solid,
+  step(n){ for (let i = 0; i < n; i++) update(DT); },
+  teleport(tx){ S.p.x = tx*TS; S.p.y = (GROUND-1)*TS; S.p.vx = S.p.vy = 0; S.cam = Math.max(0, S.p.x - VW*.4); },
+};
+})();
+</script>
+</body>
+</html>
