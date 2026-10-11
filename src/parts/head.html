@@ -132,6 +132,16 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 .ecard dt{color:var(--mist);font-size:13px}.ecard dd{margin:0 0 4px}
 .cite{font-size:13px;color:var(--mist);line-height:1.6;margin-top:14px}
 
+/* 章節選擇 */
+.chs{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin-top:10px}
+.chc{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 10px;border-radius:10px;border:3px solid var(--yellow);background:var(--panel2);min-width:0;text-align:center}
+.chc .che{font-size:38px;line-height:1.1}
+.chc b{font-size:15px;color:var(--mist)}
+.chc .chn{font-size:24px;font-weight:900;color:var(--yellow)}
+.chc small{font-size:13px;color:var(--paper);line-height:1.4}
+.chc i{font-style:normal;font-size:13px;margin-top:4px;padding:1px 10px;border-radius:999px;background:var(--green)}
+.chc.soon{border-color:var(--mist);opacity:.55}
+.chc.soon i{background:#5a5d7a}
 /* 開始畫面 */
 #titleScr{background:var(--ink) center/cover no-repeat;align-items:flex-start;padding-top:6vh;z-index:9}
 .tcard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -194,6 +204,13 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
 <div class="ov" id="paused"><div class="card">
   <h2>暫停中</h2>
   <div class="row"><button class="pb pri" id="resumeBtn">繼續</button><button class="pb" id="restartBtn">回到開始畫面</button></div>
+</div></div>
+
+<div class="ov" id="chapters"><div class="card">
+  <h2>選擇章節</h2>
+  <p class="hint">每一章大約 20 分鐘，可以只玩其中一章。</p>
+  <div class="chs" id="chList"></div>
+  <div class="row"><button class="pb" id="chBack">回到開始畫面</button></div>
 </div></div>
 
 <div class="ov" id="settle"><div class="card" id="settleCard"></div></div>

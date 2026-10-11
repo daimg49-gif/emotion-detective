@@ -19,6 +19,9 @@ async function run(browser, vp, variant){
   ok(`${tag} 對話沒有括號補充文字`, !paren.length, paren.join(' / '));
   ok(`${tag} 一開始調查按鈕是暗的`, await page.isDisabled('#lookBtn'));
   await page.click('#startBtn');
+  ok(`${tag} 出現章節選擇，第三章可以玩`, await page.isVisible('#chapters.on') && !(await page.isDisabled('#ch3')) && await page.isDisabled('#ch1'));
+  await page.screenshot({path:`${out}/${tag}-chapters.png`});
+  await page.click('#ch3');
   await ev(v => window.__GAME.Game.forceVariant = [v, v, v], variant);
   await advance();
   ok(`${tag} 序章後要找書架`, await ev(() => window.__GAME.Town.T.step) === 'shelf');
@@ -26,16 +29,17 @@ async function run(browser, vp, variant){
   await walk(7, 2); await advance();
   ok(`${tag} 學會深呼吸`, await ev(() => window.__GAME.Game.skills.has('breath')));
   await page.screenshot({path:`${out}/${tag}-office.png`});
-  await walk(11, 8); await page.waitForSelector('#panel.on'); await clickBtn('接下委託');
   const cases = await ev(() => window.__GAME.CASES.map(c => ({npc:c.npc, pos:c.pos, ents:Object.keys(c.entClues), wrongWord:Object.keys(c.wrong)[0], best:c.best, ok:c.ok, level:c.level, extras:c.extras, evidence:c.evidence})));
-  for (let i = 0; i < 3; i++){
-    const c = cases[i], p = c.pos[variant];
+  const ORDER = variant === 'A' ? [1, 0, 2] : [2, 1, 0];
+  for (let k = 0; k < 3; k++){
+    const i = ORDER[k], c = cases[i], p = c.pos[variant];
+    await walk(11, 8); await page.waitForSelector('#panel.on'); await clickBtn(`接下委託 ${i+1}`);
     ok(`${tag} 委託 ${i+1} 開始`, await ev(() => window.__GAME.Town.T.ci) === i);
     // 先看主角色兩種線索：委託 1 走到旁邊後用「調查」按鈕，其餘直接點人
-    if (i === 0){
+    if (k === 0){
       await ev(([x,y]) => { const T = window.__GAME.Town; const spots = [[x,y+1],[x-1,y],[x+1,y],[x,y-1]]; for (const [a,b] of spots){ if (T.goTo(a,b)) return; } }, [p.x, p.y]);
       await ev(() => window.__GAME.step(400)); await page.waitForTimeout(400);
-      ok(`${tag} 走到大熊旁邊，調查按鈕亮起`, !(await page.isDisabled('#lookBtn')) && /大熊/.test(await page.textContent('#lookName')));
+      ok(`${tag} 走到委託人旁邊，調查按鈕亮起`, !(await page.isDisabled('#lookBtn')) && (await page.textContent('#lookName')).length > 0);
       await page.click('#lookBtn');
     } else await walk(p.x, p.y);
     await page.waitForSelector('#panel.on');
@@ -77,7 +81,9 @@ async function run(browser, vp, variant){
     if (i === 0) await page.screenshot({path:`${out}/${tag}-choose.png`});
     await page.locator('#pBtns button').first().click(); await advance();
   }
-  ok(`${tag} 三個委託後要回社辦`, await ev(() => window.__GAME.Town.T.step) === 'return');
+  ok(`${tag} 三個委託後回到公布欄`, await ev(() => window.__GAME.Town.T.step) === 'board');
+  await walk(11, 8); await page.waitForSelector('#panel.on'); await clickBtn('去闖關');
+  ok(`${tag} 選闖關後要回社辦`, await ev(() => window.__GAME.Town.T.step) === 'return');
   ok(`${tag} 四個技能都學會`, await ev(() => ['breath','pause','angle','say'].every(k => window.__GAME.Game.skills.has(k))));
   await walk(5, 9); await advance();
   ok(`${tag} 進入闖關`, await ev(() => window.__GAME.Game.mode) === 'stage');
@@ -109,12 +115,53 @@ async function run(browser, vp, variant){
   ok(`${tag} 結算有研究出處`, /Lieberman/.test(txt) && /Nummenmaa/.test(txt));
   await page.screenshot({path:`${out}/${tag}-settle.png`});
   await page.click('#againBtn');
-  ok(`${tag} 再玩一次回到開始畫面`, await page.isVisible('#titleScr.on'));
+  ok(`${tag} 結案後回到章節選擇`, await page.isVisible('#chapters.on'));
   ok(`${tag} 沒有 JS 錯誤`, errs.length === 0, errs.join(' | '));
+  await ctx.close();
+}
+async function runShort(browser){
+  const ctx = await browser.newContext({viewport:{width:1024, height:768}, hasTouch:true});
+  const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message));
+  await page.goto('file://' + file);
+  const ev = (fn, arg) => page.evaluate(fn, arg);
+  const advance = async () => { for (let i = 0; i < 40; i++){ if (!(await page.isVisible('#dlg'))) return; await page.click('#dbox'); } };
+  const walk = async (x, y) => { await ev(([x,y]) => window.__GAME.Town.goTo(x, y), [x, y]); for (let i = 0; i < 80; i++){ await ev(() => window.__GAME.step(10)); if (await page.isVisible('#dlg') || await page.isVisible('#panel.on')) break; } };
+  const clickBtn = async (txt) => { await page.locator('#pBtns button', {hasText: txt}).first().click(); };
+  await page.click('#startBtn'); await page.click('#ch3');
+  await ev(() => window.__GAME.Game.forceVariant = ['A','A','A']);
+  await advance(); await walk(2, 1); await advance(); await walk(7, 2); await advance();
+  await walk(11, 8); await page.waitForSelector('#panel.on');
+  ok('提早結算 沒做委託時沒有「結束今天的調查」', await page.locator('#pBtns button', {hasText:'結束今天的調查'}).count() === 0);
+  await clickBtn('接下委託 2');
+  // 用測試接口快速完成委託 2
+  await ev(() => { const G = window.__GAME, T = G.Town.T, c = G.CASES[1]; T.cs.found = {face:1, body:1, scene:1}; T.cs.clues = [{type:'scene', text:'x', key:'trash'}];
+    T.cs.named = 'best'; T.cs.word = '挫折'; T.cs.typesAtName = 3; T.cs.tries = 1; T.cs.evTries = 1; T.cs.order = c.options.slice(); });
+  const p = await ev(() => window.__GAME.CASES[1].pos.A);
+  await walk(p.x, p.y); await page.waitForSelector('#panel.on');
+  await page.locator('#pBtns button').first().click(); await advance();
+  await walk(11, 8); await page.waitForSelector('#panel.on');
+  ok('提早結算 完成一件後出現「結束今天的調查」', await page.locator('#pBtns button', {hasText:'結束今天的調查'}).count() === 1);
+  ok('提早結算 學會 2 招後出現「去闖關」', await page.locator('#pBtns button', {hasText:'去闖關'}).count() === 1);
+  await clickBtn('結束今天的調查');
+  await page.waitForSelector('#settle.on');
+  const txt = await page.textContent('#settle');
+  ok('提早結算 結案報告顯示 2 件「這次沒處理」', (txt.match(/這次沒處理/g) || []).length === 2);
+  ok('提早結算 顯示完成 1/3', /完成 1\/3/.test(txt));
+  await page.screenshot({path:`${out}/early-settle.png`});
+  // 只學會深呼吸和換個角度時，闖關的暗區直接打開
+  await ev(() => { const G = window.__GAME.Game; document.querySelector('#settle').classList.remove('on'); G.skills = new Set(['breath','angle']); G.startStage(); });
+  const st = await ev(() => ({lit: window.__GAME.S.lit, fr: window.__GAME.S.fr.map(f => f.state)}));
+  ok('闖關 沒學「說出來」時暗區直接亮', st.lit === true);
+  ok('闖關 學了「換個角度」挫折怪還在', st.fr.every(x => x === 'knot'));
+  await ev(() => { const G = window.__GAME.Game; G.skills = new Set(['breath','pause']); G.startStage(); });
+  const st2 = await ev(() => ({fr: window.__GAME.S.fr.map(f => f.state), solid: window.__GAME.solid(68, 14)}));
+  ok('闖關 沒學「換個角度」時橋直接搭好', st2.fr.every(x => x === 'bridge') && st2.solid);
+  ok('提早結算 沒有 JS 錯誤', !errs.length, errs.join('|'));
   await ctx.close();
 }
 (async () => {
   const browser = await chromium.launch();
+  await runShort(browser);
   await run(browser, {width:1024, height:768}, 'A');
   await run(browser, {width:1180, height:820}, 'B');
   await run(browser, {width:844, height:390}, 'A');

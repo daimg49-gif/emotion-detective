@@ -94,7 +94,7 @@ const Town = (() => {
       Game.say([['mia','委託都在走廊的公布欄。我在這裡等你的報告！']]); return;
     }
     if (e.id === 'board'){
-      if (T.step === 'board'){ Game.boardPanel(() => startCase(0)); return; }
+      if (T.step === 'board'){ Game.boardPanel(i => startCase(i)); return; }
       if (T.step === 'case'){ Game.say([['sys', `委託單：${c.board}`]]); return; }
     }
     if (c && e.main){ Game.casePanel(); return; }
@@ -122,9 +122,8 @@ const Town = (() => {
   }
   function finishCase(){
     const c = CASES[T.ci];
-    T.results.push({id:c.id, v:T.cs.v, typesAtName:T.cs.typesAtName, named:T.cs.named, tries:T.cs.tries, evTries:T.cs.evTries, fit:T.cs.fit, choice:T.cs.choice});
-    if (T.ci < CASES.length - 1){ startCase(T.ci + 1); }
-    else { T.step = 'return'; T.ci = -1; T.cs = null; rebuildBlock(); Game.clueCount(); }
+    T.results.push({idx:T.ci, id:c.id, v:T.cs.v, typesAtName:T.cs.typesAtName, named:T.cs.named, tries:T.cs.tries, evTries:T.cs.evTries, fit:T.cs.fit, choice:T.cs.choice});
+    T.step = 'board'; T.ci = -1; T.cs = null; rebuildBlock(); Game.clueCount();
     Game.objective();
   }
 

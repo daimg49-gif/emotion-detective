@@ -4,14 +4,15 @@
 
 - 線上遊玩（開啟 GitHub Pages 後）：https://daimg49-gif.github.io/emotion-detective/
 - 設計綱要與文字腳本：協作中心 [game-dev-lab](https://github.com/daimg49-gif/game-dev-lab) 的 `docs/specs/`
-- 目前版本：第三章「生氣」v4（只說「生氣」不能結案；說出情緒要挑證據）
+- 目前版本：v5（章節選擇；委託順序自選；完成 1 件後可提早結案；闖關改為選擇）
+- 五章：開心、難過、生氣（可玩）、害怕、討厭；腳本見協作中心 `docs/specs/`
 
 ## 檔案
 
 | 路徑 | 內容 |
 |---|---|
 | `index.html` | 目前上線的遊戲（與最新版號檔案相同） |
-| `情緒偵探社_v4.html` | 第三章 v4；v2、v3 保留可退回 |
+| `情緒偵探社_v5.html` | 目前版本；v3、v4 保留可退回 |
 | `src/parts/head.html` | 頁面外殼與樣式 |
 | `src/parts/content.js` | **內容表**：角色、序章、3 個委託的線索與選項、圖鑑、評語、地圖配置。改文字只改這裡 |
 | `src/parts/town.js` | 校園地圖：點地圖移動、調查、委託流程 |
@@ -32,9 +33,11 @@
 3. 說錯情緒會回到調查，不會卡住；只說「生氣」這類大方向的詞不能結案
 3-1. 說對情緒後要挑證據：挑錯會重挑，線索本裡一定找得到可用的證據
 4. 說對情緒後能選陪伴方法，結案學會對應技能（暫停、換個角度、說出來）
-5. 三個委託後要回社辦，走到走廊左邊觸發闖關
+5. 開始後先選章節；委託順序可以自選；三個委託後回到公布欄，選「去闖關」再回社辦觸發闖關
+5-1. 完成 1 件後可以「結束今天的調查」，結案報告把沒做的委託標成「這次沒處理」
+5-2. 闖關時沒學會的技能，對應關卡直接打開（暗區亮、橋搭好），不會卡關
 6. 闖關能通過，出現結案報告、圖鑑卡片、評語、研究出處
-7. 「再玩一次」回到開始畫面；全程沒有 JS 錯誤
+7. 結案後回到章節選擇；全程沒有 JS 錯誤
 8. 走到人旁邊「調查」按鈕會亮並顯示名字，按下去能開始調查；遠離時變暗
 9. 委託內容的對話沒有括號補充文字
 
@@ -57,8 +60,8 @@
 執行：
 
 ```bash
-NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v4.html" /tmp
-NODE_PATH=$(npm root -g) node tests/test_layout.js "$PWD/情緒偵探社_v4.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v5.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_layout.js "$PWD/情緒偵探社_v5.html" /tmp
 NODE_PATH=$(npm root -g) node tests/test_stage.js "$PWD/prototype/stage_v3.html" /tmp
 ```
 

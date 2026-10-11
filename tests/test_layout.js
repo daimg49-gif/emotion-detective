@@ -14,7 +14,7 @@ const SIZES = [
     const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message));
     await page.goto('file://' + file);
     await page.screenshot({path:`${out}/${name}-0title.png`});
-    await page.click('#startBtn'); await page.waitForTimeout(200);
+    await page.click('#startBtn'); await page.screenshot({path:`${out}/${name}-0chapters.png`}); await page.click('#ch3'); await page.waitForTimeout(200);
     const check = async (label, sel) => page.evaluate(([sel]) => {
       const vw = innerWidth, vh = innerHeight, cv = document.querySelector('#cv').getBoundingClientRect();
       const bad = [], overlap = [];

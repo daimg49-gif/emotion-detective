@@ -12,29 +12,69 @@
   --yellow:#E9C46A; --green:#2A9D8F; --violet:#7B6D8D; --pink:#F2B5D4; --sky:#8ecae6;
   --deep:#1b1c2b; --panel:#2B2D42; --panel2:#3a3c56;
   --f:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
-  --strip:100px;
-}
+  }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;background:var(--deep);color:var(--paper);font-family:var(--f);overflow:hidden;
   touch-action:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
 button{font-family:var(--f);color:var(--paper);cursor:pointer}
 button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
-#wrap{position:fixed;left:0;right:0;top:0;bottom:var(--strip);display:grid;place-items:center}
+/* ===== 響應式版面：依螢幕比例切換三種排法（JS 在 body 加 L-normal / L-wide / L-tall） =====
+   normal：平板、電腦橫放。上方資訊列、中間畫面、下方操作列，對話疊在畫面下緣
+   wide  ：手機橫放。左右兩欄放按鈕，畫面在中間，不疊在畫面上
+   tall  ：手機、平板直放。畫面在上，對話與按鈕在下，彼此不重疊 */
+#app{position:fixed;inset:0;display:grid;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+#top{grid-area:top;display:flex;align-items:center;gap:10px;padding:6px 10px;min-width:0;background:#141522;border-bottom:3px solid var(--ink)}
+#screen{grid-area:screen;position:relative;display:grid;place-items:center;min-height:0;min-width:0;overflow:hidden}
 #cv{image-rendering:pixelated;image-rendering:crisp-edges;display:block;background:var(--ink)}
-
-/* 闖關 HUD */
-#hud{position:fixed;left:12px;top:10px;pointer-events:none}
-.hbox{background:rgba(43,45,66,.88);border:3px solid var(--ink);box-shadow:0 0 0 2px var(--mist);border-radius:6px;padding:6px 10px}
-#bar{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
-#bar .track{width:160px;height:16px;background:#141522;border:2px solid var(--mist);position:relative}
-#bar .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--yellow),var(--orange),var(--red));transition:width .25s}
-#pauseBtn{position:fixed;right:12px;top:10px;width:56px;height:56px;font-size:22px;font-weight:700;background:rgba(43,45,66,.88);border:3px solid var(--mist);border-radius:8px;z-index:4}
-
-/* 操作列 */
-#controls{position:fixed;left:0;right:0;bottom:0;height:var(--strip);background:#141522;border-top:3px solid var(--ink);padding:0 14px;padding-bottom:env(safe-area-inset-bottom,0px)}
+#talk{grid-area:screen;align-self:end;z-index:5;padding:0 10px 10px;min-width:0;pointer-events:none}
+#talk > *{pointer-events:auto}
+#controls{grid-area:ctl;background:#141522;border-top:3px solid var(--ink);padding:0 14px;min-width:0}
 .strip{height:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ctl{display:flex;gap:12px}
+#lookBtn{flex-direction:column;gap:0;min-width:150px;border-color:var(--yellow);background:#6b5520;font-size:20px;line-height:1.2}
+#lookBtn small{font-size:13px;font-weight:400;color:var(--paper);max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lookBtn[disabled]{border-color:var(--mist);background:var(--panel);opacity:.55}
+
+body.L-normal #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) 100px;grid-template-areas:"top" "screen" "ctl"}
+
+body.L-wide #app{grid-template-columns:168px minmax(0,1fr) 196px;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"left top right" "left screen right";background:#141522}
+body.L-wide #controls,body.L-wide .strip{display:contents}
+body.L-wide #ctlMove,body.L-wide #notesBtn{grid-area:left;align-self:end;justify-self:center;margin-bottom:14px}
+body.L-wide #notesBtn{align-self:center}
+body.L-wide #skills{grid-area:right;align-self:start;justify-self:center;display:grid;grid-template-columns:repeat(2,auto);margin-top:12px}
+body.L-wide #ctlJump,body.L-wide #bookBtn{grid-area:right;align-self:end;justify-self:center;margin-bottom:14px}
+body.L-wide #bookBtn{align-self:center}
+body.L-wide #lookBtn{grid-area:right;align-self:end;justify-self:center;margin-bottom:14px;min-width:150px}
+body.L-wide #dtext{font-size:17px;min-height:0}
+body.L-wide .dbox{padding:8px 12px 6px}
+
+body.L-tall #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"top" "screen" "talk" "ctl"}
+body.L-tall #screen{aspect-ratio:480/272;max-height:46vh;width:100%}
+body.L-tall #talk{grid-area:talk;align-self:start;padding:10px}
+body.L-tall #controls{padding:10px 12px}
+body.L-tall #ctlStage{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"sk sk sk" "mv . jp";gap:12px}
+body.L-tall #ctlStage[hidden]{display:none}
+body.L-tall #skills{grid-area:sk;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+body.L-tall .sk{width:auto}
+body.L-tall #ctlMove{grid-area:mv}
+body.L-tall #ctlJump{grid-area:jp}
+body.L-tall #ctlTown{min-height:76px;gap:8px}
+body.L-tall .tb{min-width:0;flex:1 1 0;padding:0 4px;font-size:15px;white-space:nowrap;gap:3px}
+body.L-tall #lookBtn{flex:1.4 1 0;min-width:0;font-size:18px}
+
+/* 上方資訊列 */
+#hud{flex:none}
+#bar{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+#bar .track{width:clamp(90px,22vw,180px);height:16px;background:#2a2b40;border:2px solid var(--mist);position:relative}
+#bar .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--yellow),var(--orange),var(--red));transition:width .25s}
+#obj{flex:1;min-width:0;font-size:18px;font-weight:700;color:var(--yellow);line-height:1.35}
+#obj small{display:block;font-size:14px;font-weight:400;color:var(--mist)}
+#pauseBtn{flex:none;margin-left:auto;width:48px;height:48px;font-size:20px;font-weight:700;background:var(--panel);border:3px solid var(--mist);border-radius:8px}
+body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
+
+/* 操作按鈕 */
 .btn{touch-action:none;width:72px;height:72px;border-radius:12px;border:3px solid var(--mist);background:rgba(43,45,66,.82);font:700 28px var(--f);display:grid;place-items:center}
 .btn.on{background:rgba(233,196,106,.55);border-color:var(--yellow)}
 #jump{width:84px;height:84px;border-radius:50%;font-size:22px;border-color:var(--yellow)}
@@ -47,16 +87,14 @@ button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
 .sk[data-k=angle]{border-color:var(--violet)}.sk[data-k=say]{border-color:var(--pink)}
 .tb{min-width:112px;height:64px;border-radius:10px;border:3px solid var(--mist);background:var(--panel);font:700 18px var(--f);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px}
 .tb b{color:var(--yellow);font-variant-numeric:tabular-nums}
-#obj{flex:1;min-width:0;text-align:center;font-size:19px;font-weight:700;color:var(--yellow);line-height:1.35}
-#obj small{display:block;font-size:14px;font-weight:400;color:var(--mist)}
 
 /* 提示 */
-#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);max-width:min(92vw,560px);background:rgba(43,45,66,.95);
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);max-width:min(92vw,560px);background:rgba(43,45,66,.95);
   border:3px solid var(--yellow);border-radius:8px;padding:10px 16px;font-size:19px;line-height:1.5;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
 #toast.on{opacity:1}
 
 /* 對話框 */
-#dlg{position:fixed;left:0;right:0;bottom:calc(var(--strip) + 10px);display:flex;justify-content:center;padding:0 14px;z-index:7}
+#dlg{display:flex;justify-content:center}
 .dbox{width:min(760px,100%);background:#1f2133;border:4px solid var(--mist);border-radius:10px;box-shadow:0 5px 0 #0d0e18;padding:14px 18px 10px;cursor:pointer}
 #dname{font-size:17px;font-weight:700;color:var(--yellow);min-height:1.2em}
 #dname.inner{color:var(--sky)}
@@ -94,6 +132,16 @@ button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
 .ecard dt{color:var(--mist);font-size:13px}.ecard dd{margin:0 0 4px}
 .cite{font-size:13px;color:var(--mist);line-height:1.6;margin-top:14px}
 
+/* 章節選擇 */
+.chs{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin-top:10px}
+.chc{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 10px;border-radius:10px;border:3px solid var(--yellow);background:var(--panel2);min-width:0;text-align:center}
+.chc .che{font-size:38px;line-height:1.1}
+.chc b{font-size:15px;color:var(--mist)}
+.chc .chn{font-size:24px;font-weight:900;color:var(--yellow)}
+.chc small{font-size:13px;color:var(--paper);line-height:1.4}
+.chc i{font-style:normal;font-size:13px;margin-top:4px;padding:1px 10px;border-radius:999px;background:var(--green)}
+.chc.soon{border-color:var(--mist);opacity:.55}
+.chc.soon i{background:#5a5d7a}
 /* 開始畫面 */
 #titleScr{background:var(--ink) center/cover no-repeat;align-items:flex-start;padding-top:6vh;z-index:9}
 .tcard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -102,43 +150,43 @@ button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
   text-shadow:4px 4px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .gsub{margin:0;font-size:22px;font-weight:700;text-shadow:2px 2px 0 var(--ink)}
 #startBtn{margin-top:14px;min-height:60px;padding:0 40px;font:700 24px var(--f);border-radius:12px;border:4px solid var(--ink);background:var(--yellow);color:var(--ink);box-shadow:0 5px 0 var(--ink)}
+.keys{margin:8px 0 0;font-size:15px;background:rgba(43,45,66,.75);padding:4px 12px;border-radius:6px;text-align:center}
 .credit{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--paper);text-shadow:1px 1px 0 var(--ink)}
 
-#rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--deep);z-index:20;font-size:24px;text-align:center;padding:24px;line-height:1.7}
-@media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
 #err{position:fixed;left:8px;bottom:4px;font-size:12px;color:var(--red);z-index:30}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
-<body>
-<div id="wrap"><canvas id="cv" width="480" height="272" aria-label="遊戲畫面"></canvas></div>
-
-<div id="hud" hidden><div class="hbox" id="bar"><span>我的情緒</span><span class="track"><span class="fill" id="barFill"></span></span></div></div>
-<button id="pauseBtn" aria-label="暫停">||</button>
-
-<div id="controls">
-  <div class="strip" id="ctlTown">
-    <button class="tb" id="notesBtn">🔍 線索 <b id="clueN">0/4</b></button>
+<body class="L-normal">
+<div id="app">
+  <header id="top">
+    <div id="hud" hidden><div id="bar"><span>我的情緒</span><span class="track"><span class="fill" id="barFill"></span></span></div></div>
     <div id="obj"></div>
-    <button class="tb" id="bookBtn">📖 圖鑑</button>
-  </div>
-  <div class="strip" id="ctlStage" hidden>
-    <div class="ctl">
-      <button class="btn" id="left" aria-label="往左">◀</button>
-      <button class="btn" id="right" aria-label="往右">▶</button>
+    <button id="pauseBtn" aria-label="暫停">||</button>
+  </header>
+  <main id="screen"><canvas id="cv" width="480" height="272" aria-label="遊戲畫面"></canvas><div id="toast"></div></main>
+  <section id="talk"><div id="dlg" hidden><div class="dbox" id="dbox"><div id="dname"></div><div id="dtext"></div><div class="dnext">點一下繼續 ▼</div></div></div></section>
+  <nav id="controls">
+    <div class="strip" id="ctlTown">
+      <button class="tb" id="notesBtn">📝 線索 <b id="clueN">0/4</b></button>
+      <button class="tb" id="lookBtn" disabled>🔎 調查<small id="lookName">走到人或東西旁邊</small></button>
+      <button class="tb" id="bookBtn">📖 圖鑑</button>
     </div>
-    <div id="skills">
-      <button class="sk" data-k="breath"><i>🫁</i>深呼吸<span class="cd"></span></button>
-      <button class="sk" data-k="pause"><i>✋</i>暫停<span class="cd"></span></button>
-      <button class="sk" data-k="angle"><i>🔄</i>換個角度<span class="cd"></span></button>
-      <button class="sk" data-k="say"><i>💬</i>說出來<span class="cd"></span></button>
+    <div class="strip" id="ctlStage" hidden>
+      <div class="ctl" id="ctlMove">
+        <button class="btn" id="left" aria-label="往左">◀</button>
+        <button class="btn" id="right" aria-label="往右">▶</button>
+      </div>
+      <div id="skills">
+        <button class="sk" data-k="breath"><i>🫁</i>深呼吸<span class="cd"></span></button>
+        <button class="sk" data-k="pause"><i>✋</i>暫停<span class="cd"></span></button>
+        <button class="sk" data-k="angle"><i>🔄</i>換個角度<span class="cd"></span></button>
+        <button class="sk" data-k="say"><i>💬</i>說出來<span class="cd"></span></button>
+      </div>
+      <div class="ctl" id="ctlJump"><button class="btn" id="jump" aria-label="跳">跳</button></div>
     </div>
-    <div class="ctl"><button class="btn" id="jump" aria-label="跳">跳</button></div>
-  </div>
+  </nav>
 </div>
-
-<div id="toast"></div>
-<div id="dlg" hidden><div class="dbox" id="dbox"><div id="dname"></div><div id="dtext"></div><div class="dnext">點一下繼續 ▼</div></div></div>
 
 <div class="ov" id="panel"><div class="card"><h2 id="pTitle"></h2><div id="pBody"></div><div class="row" id="pBtns"></div></div></div>
 
@@ -148,6 +196,7 @@ button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
     <h1 class="gname">情緒偵探社</h1>
     <p class="gsub">第三章：生氣</p>
     <button id="startBtn">開始</button>
+    <p class="keys">平板、手機直接點；電腦也可以用方向鍵、空白鍵，數字鍵 1～4 是技能</p>
   </div>
   <p class="credit">角色與情境均為虛構，遊戲不記錄任何學生資料</p>
 </div>
@@ -157,9 +206,15 @@ button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
   <div class="row"><button class="pb pri" id="resumeBtn">繼續</button><button class="pb" id="restartBtn">回到開始畫面</button></div>
 </div></div>
 
+<div class="ov" id="chapters"><div class="card">
+  <h2>選擇章節</h2>
+  <p class="hint">每一章大約 20 分鐘，可以只玩其中一章。</p>
+  <div class="chs" id="chList"></div>
+  <div class="row"><button class="pb" id="chBack">回到開始畫面</button></div>
+</div></div>
+
 <div class="ov" id="settle"><div class="card" id="settleCard"></div></div>
 
-<div id="rotate">請把平板橫著拿 ↻</div>
 <div id="err"></div>
 
 <script>
@@ -574,7 +629,14 @@ const LOOKS = {
   kai:  {hair:'#222', style:'cap', top:'#8D99AE', cap:'#EF233C'},
   jie:  {hair:'#3a2a22', style:'short', top:'#f2f2ee', stripe:'#5a6b8a'},
 };
-const NAMES = {mia:'米亞', bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑', me:'我'};
+const CHAPTERS = [
+  {n:1, name:'開心', emoji:'😊', words:'興奮、得意、自豪、感激、放心', ready:false},
+  {n:2, name:'難過', emoji:'😢', words:'失望、寂寞、委屈、捨不得', ready:false},
+  {n:3, name:'生氣', emoji:'😠', words:'不公平、挫折、被冒犯、丟臉', ready:true},
+  {n:4, name:'害怕', emoji:'😨', words:'緊張、擔心、焦慮', ready:false},
+  {n:5, name:'討厭', emoji:'😒', words:'噁心、不耐煩、嫉妒、尷尬', ready:false},
+];
+const NAMES = {mia:'米亞', radio:'📻 米亞', bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑', me:'我'};
 const TYPE_NAME = {face:'表情', body:'身體', talk:'話語', scene:'情境'};
 const BASE_WORDS = ['生氣','難過','害怕','開心'];
 const FINE_WORDS = ['不公平','挫折','被冒犯','丟臉','緊張'];
@@ -594,7 +656,7 @@ const TUTORIAL = {
     ['mia','你就是新社員？歡迎！我們偵探社不找失物，我們找的是心情。'],
     ['mia','學校裡每天都有人不對勁。有人生氣、有人難過，可是他們很少直接說出來。'],
     ['mia','偵探要做三件事：找線索、說出那是什麼情緒、陪他找到適合的方法。'],
-    ['sys','點地圖，角色會自己走過去；點人或東西，就會調查。先去點左上角的書架。'],
+    ['sys','點地圖，角色會自己走過去。走到人或東西旁邊，按下方的「調查」；直接點他們也可以。先去左上角的書架。'],
   ],
   shelf: [['sys','你在書架上找到一本《情緒圖鑑》，裡面還有很多空白頁。'],['sys','左下角的「線索」和右下角的「圖鑑」隨時可以點開看。']],
   mia: [
@@ -602,7 +664,7 @@ const TUTORIAL = {
     ['mia','至少找到兩種線索，才能判斷是什麼情緒。找越多，判斷越準。'],
     ['mia','送你第一招。不管遇到什麼事，先吸氣數到四，再慢慢吐氣。'],
     ['sys','學會技能：深呼吸'],
-    ['mia','今天有三個委託。走廊的公布欄上有，自己去看吧！'],
+    ['mia','今天有三個委託，都貼在走廊的公布欄。想先做哪件都可以，做完一件就能決定要不要收工。'],
   ],
   bump: [
     ['sys','你抱著寫滿線索的偵探筆記走回社辦。'],
@@ -622,13 +684,14 @@ const CASES = [
     npcClues:{
       face:{A:'眉頭皺成一團，牙齒咬得很緊，臉漲紅。', B:'嘴巴噘著，眼睛一直盯著地上。'},
       body:{A:'雙手握拳，肩膀一直在抖，站著不動。', B:'坐在場邊，腳一直踢地上的小石頭。'},
-      talk:{A:'（很大聲）「他明明沒打到我！」', B:'（很小聲）「每次都判我出局……」'},
+      talk:{A:'😠「他明明沒打到我！」', B:'😞「每次都判我出局……」'},
     },
     entClues:{
       score:{type:'scene', A:'計分板：紅隊 9、藍隊 10。大熊穿的是紅隊的衣服。', B:'計分板：紅隊 9、藍隊 10。大熊穿的是紅隊的衣服。'},
       sign:{type:'scene', A:'籃球架旁的公告：「裁判的判決為最後判決」。', B:'籃球架旁的公告：「裁判的判決為最後判決」。'},
       xiang:{type:'scene', A:'小翔：「我看到球擦到他的袖子啦。」', B:'小翔：「我看到球擦到他的袖子啦。」'},
     },
+    evidence:{A:['talk','sign'], B:['talk','sign']},
     best:{A:['不公平'], B:['不公平']}, ok:{A:['生氣'], B:['生氣']}, level:{A:5, B:3},
     right:{A:'大熊吐了一口氣：「對，就是不公平。」', B:'大熊停下踢石頭的腳：「……嗯。」'},
     wrong:{'難過':'「我才沒有難過！我是覺得他亂判！」', '丟臉':'「被判出局又不丟臉，是他判錯。」'},
@@ -646,7 +709,7 @@ const CASES = [
         A:{fit:'bad', r:'大熊一走過去就開始大聲講，小翔也生氣了。'},
         B:{fit:'ok', r:'小翔說球擦到他的袖子。大熊不太服氣，但點了點頭。'}},
     ],
-    close:[['mia','（無線電）很氣的時候，先讓身體停下來。腳停住、手放開，數兩秒。']],
+    close:[['radio','很氣的時候，先讓身體停下來。腳停住、手放開，數兩秒。']],
     skill:'pause', skillName:'暫停',
   },
   { id:'c2', title:'倒了三次的塔', place:'三年級教室', npc:'le',
@@ -664,6 +727,7 @@ const CASES = [
       bboard:{type:'scene', A:'黑板上寫著「下課前交作品」。', B:'黑板上寫著「下課前交作品」。'},
       mate:{type:{A:'scene', B:'talk'}, A:'隔壁同學聳聳肩：「他剛剛把紙丟掉了。」', B:'隔壁同學小聲說：「他從第二節就一直在弄這個。」'},
     },
+    evidence:{A:['talk','body','trash','mate'], B:['trash','mate']},
     best:{A:['挫折'], B:['挫折']}, ok:{A:['生氣'], B:['生氣']}, level:{A:4, B:3},
     right:{A:'阿樂吸了吸鼻子：「……一直倒，很煩。」', B:'阿樂停下敲桌子的手：「嗯，很煩。」'},
     wrong:{'不公平':'「沒有人害我啊……是我自己做不好。」', '緊張':'「我不是緊張，是一直失敗很煩。」'},
@@ -681,7 +745,7 @@ const CASES = [
         A:{fit:'bad', r:'「可是就做不到啊！」他眼淚掉下來。'},
         B:{fit:'bad', r:'他嘆一口氣，繼續趴著。'}},
     ],
-    close:[['mia','（無線電）卡住的時候，換個方向看。擋住你的東西，換個角度可能變成墊腳石。']],
+    close:[['radio','卡住的時候，換個方向看。擋住你的東西，換個角度可能變成墊腳石。']],
     skill:'angle', skillName:'換個角度',
   },
   { id:'c3', title:'哭哭葵', place:'五年級走廊', npc:'kui',
@@ -698,6 +762,7 @@ const CASES = [
       kai:{type:'scene', A:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」', B:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」'},
       jie:{type:'scene', A:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」', B:'阿凱和阿傑在旁邊笑：「哭哭葵、哭哭葵！」'},
     },
+    evidence:{A:['talk','kai','jie','photo'], B:['face','body','photo']},
     best:{A:['被冒犯'], B:['丟臉']}, ok:{A:['生氣'], B:['難過']}, level:{A:5, B:4},
     right:{A:'小葵咬著嘴唇：「他們很沒禮貌。」', B:'小葵小聲說：「……我不想被大家看到。」'},
     wrong:{'生氣':{B:'「我沒有生氣……我只是不想被大家看到。」'}},
@@ -716,8 +781,8 @@ const CASES = [
         B:{fit:'bad', r:'她搖頭往後退：「我不要。」'}},
     ],
     close:[
-      ['mia','（無線電）一樣是被取綽號，有人會氣到想衝過去，有人會想躲起來。看到的不一樣，因為心裡的感覺不一樣。'],
-      ['mia','（無線電）說出「我很生氣」「我覺得很丟臉」，感覺會小一點。這不是我說的，是科學家量出來的。'],
+      ['radio','一樣是被取綽號，有人會氣到想衝過去，有人會想躲起來。看到的不一樣，因為心裡的感覺不一樣。'],
+      ['radio','說出「我很生氣」「我覺得很丟臉」，感覺會小一點。這不是我說的，是科學家量出來的。'],
     ],
     skill:'say', skillName:'說出來',
   },
@@ -727,13 +792,13 @@ const VERDICT = {
   clue4:'你把四種線索都找齊了，連周圍的小細節都沒漏掉。',
   clue3:'你很會觀察，下次可以多看看周圍發生了什麼事。',
   clue2:'你找到線索就急著判斷。多看一眼，常常會發現不一樣的答案。',
-  nameBest:'你說得出很細的情緒，不只是「生氣」兩個字。',
-  nameOk:'你抓到了大方向。生氣底下，常常還藏著別的感覺。',
+  nameBest:'你說得出很細的情緒，也找得到證據，不只是「生氣」兩個字。',
+  nameOk:'你試了幾次才找到最準的詞和證據。生氣底下，常常還藏著別的感覺。',
   fitHigh:'你看得出對方現在需要什麼，不是每次都用同一招。',
   fitLow:'同一個方法，有時有用、有時沒用。差別在對方當下有多激動。',
   last:'今天的三個委託人，下次可能換你需要人陪。到時候，你知道要找誰。',
 };
-const CITE = '「說出來，感覺會小一點」：Lieberman 等人（2007），Psychological Science 18(5)。「不同情緒出現在身體不同部位」：Nummenmaa 等人（2014），PNAS 111(2)。「先處理身體、再處理想法」的方法分類參考 Gross（1998）情緒調節歷程模型。';
+const CITE = '研究出處：說出情緒能讓感覺變小，Lieberman 等人 2007 年發表於 Psychological Science 第 18 卷；不同情緒出現在身體不同部位，Nummenmaa 等人 2014 年發表於 PNAS 第 111 卷；陪伴方法的分類參考 Gross 1998 年的情緒調節歷程模型。';
 
 /* 地圖：40×26 格，每格 16 像素 */
 const MAP = { w:40, h:26, start:[4,4],
@@ -742,18 +807,18 @@ const MAP = { w:40, h:26, start:[4,4],
   doors:[[5,7,'wood'], [32,7,'class'], [10,11,'hall'], [11,11,'hall'], [28,11,'hall'], [29,11,'hall']],
   zones:[ {name:'偵探社社辦', x:1,y:1,w:9,h:6}, {name:'三年級教室', x:27,y:1,w:12,h:6}, {name:'走廊', x:1,y:8,w:38,h:3}, {name:'操場', x:1,y:12,w:38,h:13} ],
   ents:[
-    {id:'shelf', tiles:[[2,1],[3,1]], draw:'shelf', flavor:'書架上都是偵探社的舊檔案。'},
-    {id:'mdesk', tiles:[[6,4]], draw:'desk', flavor:'社長的桌子，上面有一盞小檯燈。'},
+    {id:'shelf', name:'書架', tiles:[[2,1],[3,1]], draw:'shelf', flavor:'書架上都是偵探社的舊檔案。'},
+    {id:'mdesk', name:'社長的桌子', tiles:[[6,4]], draw:'desk', flavor:'社長的桌子，上面有一盞小檯燈。'},
     {id:'mia', npc:'mia', tiles:[[7,2]], expr:'happy'},
-    {id:'board', tiles:[[11,8]], draw:'board'},
-    {id:'photo', tiles:[[13,8]], draw:'photo', flavor:'榮譽榜，貼著上週比賽的照片。'},
-    {id:'sink', tiles:[[21,8],[22,8]], draw:'sink', flavor:'洗手台。'},
-    {id:'bboard', tiles:[[29,1],[30,1],[31,1],[32,1],[33,1]], draw:'blackboard', flavor:'黑板。'},
+    {id:'board', name:'公布欄', tiles:[[11,8]], draw:'board'},
+    {id:'photo', name:'榮譽榜', tiles:[[13,8]], draw:'photo', flavor:'榮譽榜，貼著上週比賽的照片。'},
+    {id:'sink', name:'洗手台', tiles:[[21,8],[22,8]], draw:'sink', flavor:'洗手台。'},
+    {id:'bboard', name:'黑板', tiles:[[29,1],[30,1],[31,1],[32,1],[33,1]], draw:'blackboard', flavor:'黑板。'},
     {id:'desk1', tiles:[[29,3]], draw:'sdesk'}, {id:'desk2', tiles:[[31,3]], draw:'sdesk'}, {id:'desk3', tiles:[[34,3]], draw:'sdesk'},
     {id:'desk4', tiles:[[29,5]], draw:'sdesk'}, {id:'desk5', tiles:[[33,5]], draw:'sdesk'},
-    {id:'trash', tiles:[[37,6]], draw:'trash', flavor:'垃圾桶。'},
-    {id:'sign', tiles:[[4,13]], draw:'sign', flavor:'籃球架旁的公告。'},
-    {id:'score', tiles:[[10,13],[11,13]], draw:'score', flavor:'計分板。'},
+    {id:'trash', name:'垃圾桶', tiles:[[37,6]], draw:'trash', flavor:'垃圾桶。'},
+    {id:'sign', name:'公告', tiles:[[4,13]], draw:'sign', flavor:'籃球架旁的公告。'},
+    {id:'score', name:'計分板', tiles:[[10,13],[11,13]], draw:'score', flavor:'計分板。'},
     {id:'tree1', tiles:[[31,16]], draw:'tree'}, {id:'tree2', tiles:[[35,20]], draw:'tree'}, {id:'tree3', tiles:[[24,22]], draw:'tree'}, {id:'tree4', tiles:[[2,23]], draw:'tree'},
   ],
 };
@@ -825,7 +890,7 @@ const Town = (() => {
 
   function update(dt){
     T.t += dt;
-    if (T.busy){ return; }
+    if (T.busy){ centerCam(false, dt); return; }
     const p = T.p;
     if (T.path.length){
       const [tx,ty] = T.path[0], gx = tx*TS+8, gy = ty*TS+8, dx = gx - p.x, dy = gy - p.y, d = Math.hypot(dx,dy), s = SPEED*dt;
@@ -840,7 +905,7 @@ const Town = (() => {
     centerCam(false, dt);
   }
   function centerCam(snap, dt){
-    const tx = Math.max(0, Math.min(W*TS - VW, T.p.x - VW/2)), ty = Math.max(0, Math.min(H*TS - VH, T.p.y - VH/2));
+    const tx = Math.max(0, Math.min(W*TS - VW, T.p.x - VW/2)), ty = Math.max(0, Math.min(H*TS - VH, T.p.y - VH/2 + Game.camBias()));
     if (snap){ T.cam.x = tx; T.cam.y = ty; } else { const k = Math.min(1, dt*6); T.cam.x += (tx - T.cam.x)*k; T.cam.y += (ty - T.cam.y)*k; }
   }
 
@@ -854,7 +919,7 @@ const Town = (() => {
       Game.say([['mia','委託都在走廊的公布欄。我在這裡等你的報告！']]); return;
     }
     if (e.id === 'board'){
-      if (T.step === 'board'){ Game.boardPanel(() => startCase(0)); return; }
+      if (T.step === 'board'){ Game.boardPanel(i => startCase(i)); return; }
       if (T.step === 'case'){ Game.say([['sys', `委託單：${c.board}`]]); return; }
     }
     if (c && e.main){ Game.casePanel(); return; }
@@ -864,27 +929,26 @@ const Town = (() => {
   }
   function startCase(i){
     T.ci = i; T.step = 'case';
-    T.cs = {v: Math.random() < .5 ? 'A' : 'B', found:{}, clues:[], named:null, tries:0, typesAtName:0, fit:null, choice:null};
+    T.cs = {v: Math.random() < .5 ? 'A' : 'B', found:{}, clues:[], named:null, tries:0, evTries:0, typesAtName:0, fit:null, choice:null};
     if (Game.forceVariant) T.cs.v = Game.forceVariant[i] || T.cs.v;
     rebuildBlock(); Game.objective(); Game.clueCount();
   }
-  function addClue(type, text){
+  function addClue(type, text, key){
     const fresh = !T.cs.found[type];
     T.cs.found[type] = true;
-    if (!T.cs.clues.some(c => c.text === text)) T.cs.clues.push({type, text});
+    if (!T.cs.clues.some(c => c.text === text)) T.cs.clues.push({type, text, key: key || type});
     Game.clueCount();
     return fresh;
   }
   function clue(entId){
     const c = CASES[T.ci], d = c.entClues[entId], v = T.cs.v, type = typeof d.type === 'object' ? d.type[v] : d.type;
-    const fresh = addClue(type, d[v]);
+    const fresh = addClue(type, d[v], entId);
     Game.say([['sys', d[v]], ['sys', fresh ? `找到「${TYPE_NAME[type]}」線索。` : '這個線索已經記下來了。']]);
   }
   function finishCase(){
     const c = CASES[T.ci];
-    T.results.push({id:c.id, v:T.cs.v, typesAtName:T.cs.typesAtName, named:T.cs.named, tries:T.cs.tries, fit:T.cs.fit, choice:T.cs.choice});
-    if (T.ci < CASES.length - 1){ startCase(T.ci + 1); }
-    else { T.step = 'return'; T.ci = -1; T.cs = null; rebuildBlock(); Game.clueCount(); }
+    T.results.push({idx:T.ci, id:c.id, v:T.cs.v, typesAtName:T.cs.typesAtName, named:T.cs.named, tries:T.cs.tries, evTries:T.cs.evTries, fit:T.cs.fit, choice:T.cs.choice});
+    T.step = 'board'; T.ci = -1; T.cs = null; rebuildBlock(); Game.clueCount();
     Game.objective();
   }
 
@@ -998,9 +1062,32 @@ const Town = (() => {
     if (goal){ const gx = goal[0]*TS + 8 - cx, gy = goal[1]*TS - cy - 22 + Math.round(Math.sin(T.t*5)*2);
       if (gx > -8 && gx < VW+8 && gy > -16 && gy < VH) { O(gx-3, gy, 7, 4, '#E9C46A'); R(gx-1, gy+4, 3, 3, '#E9C46A'); R(gx-1, gy+5, 3, 2, '#2B2D42'); R(gx, gy+4, 1, 3, '#E9C46A'); } }
   }
-  function tap(px, py){ if (!T || T.busy) return; goTo(Math.floor((px + T.cam.x)/TS), Math.floor((py + T.cam.y)/TS)); }
+  function tap(px, py){
+    if (!T || T.busy) return;
+    const wx = px + T.cam.x, wy = py + T.cam.y;
+    let tx = Math.floor(wx/TS), ty = Math.floor(wy/TS);
+    if (!entAt(tx, ty)){ // 點偏一點也算點到人或東西，角色小也點得到
+      let best = null, bd = 14;
+      entsNow().filter(usable).forEach(e => e.tiles.forEach(([x,y]) => { const d = Math.hypot(x*TS+8 - wx, y*TS+8 - wy); if (d < bd){ bd = d; best = [x,y]; } }));
+      if (best){ tx = best[0]; ty = best[1]; }
+    }
+    goTo(tx, ty);
+  }
+  // 可以調查的東西：人、有說明文字的物件、公布欄、書架，以及這個委託的線索
+  function usable(e){
+    const c = T.step === 'case' ? CASES[T.ci] : null;
+    return !!(e.npc || e.flavor || e.id === 'board' || (c && c.entClues[e.id]));
+  }
+  function nearby(){
+    if (!T || T.step === 'stage') return null;
+    const [x,y] = tileOf(), c = T.step === 'case' ? CASES[T.ci] : null;
+    const rank = e => e.main ? 0 : (c && c.entClues[e.id]) ? 1 : e.npc ? 2 : 3;
+    return entsNow().filter(e => usable(e) && e.tiles.some(([a,b]) => Math.abs(a-x) + Math.abs(b-y) <= 1))
+      .sort((a,b) => rank(a) - rank(b))[0] || null;
+  }
+  function lookNearby(){ if (!T || T.busy || T.path.length) return false; const e = nearby(); if (!e) return false; face(e); act(e); return true; }
 
-  return { reset, update, draw, tap, goTo, startCase, addClue, finishCase, rebuildBlock, entsNow,
+  return { reset, update, draw, tap, goTo, nearby, lookNearby, startCase, addClue, finishCase, rebuildBlock, entsNow,
     get T(){ return T; }, tileOf };
 })();
 
@@ -1016,7 +1103,7 @@ const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 
 const Game = {
-  mode:'title', paused:false, skills:new Set(), book:false, forceVariant:null, methods:{}, stageStats:null, _dlg:null,
+  mode:'title', layout:'normal', paused:false, skills:new Set(), book:false, forceVariant:null, methods:{}, stageStats:null, _dlg:null,
 
   /* ----- 對話 ----- */
   say(lines, done){
@@ -1052,10 +1139,12 @@ const Game = {
   /* ----- 進度提示 ----- */
   objective(){
     const T = Town.T, o = $('#obj');
-    const txt = {intro:'聽米亞說明', shelf:'點書架，拿《情緒圖鑑》', mia:'跟米亞說話', board:'到走廊看公布欄', return:'回社辦（走廊最左邊）', stage:''}[T.step];
+    const done = T.results.length;
+    const txt = {intro:'聽米亞說明', shelf:'點書架，拿《情緒圖鑑》', mia:'跟米亞說話', board: done ? `已完成 ${done}/3 件。回走廊公布欄選下一步` : '到走廊看公布欄', return:'回社辦，在走廊最左邊', stage:''}[T.step];
     if (T.step === 'case'){ const c = CASES[T.ci]; o.innerHTML = `委託 ${T.ci+1}/3：到${c.place}找${NAMES[c.npc]}<small>點他和周圍的東西找線索，找到 2 種就能判斷情緒</small>`; }
     else o.textContent = txt || '';
   },
+  camBias(){ return this._dlg && this.layout !== 'tall' ? VH * .22 : 0; },
   goalTile(){
     const T = Town.T;
     if (T.step === 'shelf') return [2,1]; if (T.step === 'mia') return [7,2]; if (T.step === 'board') return [11,8];
@@ -1063,15 +1152,27 @@ const Game = {
     if (T.step === 'case'){ const p = CASES[T.ci].pos[T.cs.v]; return [p.x, p.y]; }
     return null;
   },
+  updateLook(){
+    const btn = $('#lookBtn'), T = Town.T;
+    const e = this.mode === 'town' && T && !T.busy && !T.path.length ? Town.nearby() : null;
+    const label = e ? (e.npc ? NAMES[e.npc] : e.name || '這裡') : '走到人或東西旁邊';
+    if (btn.disabled !== !e) btn.disabled = !e;
+    const n = $('#lookName'); if (n.textContent !== label) n.textContent = label;
+  },
   clueCount(){ const T = Town.T; const n = T && T.cs ? Object.keys(T.cs.found).length : 0; $('#clueN').textContent = `${n}/4`; },
   bookOn(){ this.book = true; },
   learn(k){ this.skills.add(k); refreshSkills(); },
 
   /* ----- 公布欄、案件 ----- */
   boardPanel(go){
-    const c = CASES[0];
-    this.panel('公布欄・今日委託', CASES.map((x, i) => `<p><span class="tag">委託 ${i+1}</span>${esc(x.board)}</p>`).join('') + '<p class="hint">一次處理一件，從第 1 件開始。</p>',
-      [{t:`接下委託 1：${c.title}`, cls:'pri', fn:() => { this.closePanel(); go(); }}]);
+    const T = Town.T, done = new Set(T.results.map(r => r.idx)), n = done.size;
+    const html = CASES.map((x, i) => `<p><span class="tag">委託 ${i+1}</span>${done.has(i) ? '✅ ' : ''}${esc(x.board)}</p>`).join('') +
+      `<p class="hint">${n ? `已完成 ${n}/3 件。想繼續、去闖關，或今天先收工都可以。` : '想先做哪件都可以。完成一件以後，就能隨時結束今天的調查。'}</p>`;
+    const btns = CASES.map((x, i) => done.has(i) ? null : {t:`接下委託 ${i+1}：${x.title}`, cls:'pri', fn:() => { this.closePanel(); go(i); }}).filter(Boolean);
+    if (n && this.skills.size >= 2 && !this.stageStats) btns.push({t:'🎮 去闖關（闖完就結案）', fn:() => { this.closePanel(); T.step = 'return'; this.objective(); toast('回社辦的路上……', 1600); }});
+    if (n) btns.push({t:'📋 結束今天的調查', fn:() => { this.closePanel(); this.settle(); }});
+    btns.push({t:'先不要', fn:() => this.closePanel()});
+    this.panel('公布欄・今日委託', html, btns);
   },
   casePanel(){
     const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, who = NAMES[c.npc];
@@ -1102,7 +1203,7 @@ const Game = {
     const html = `<p>${esc(NAMES[c.npc])}現在是什麼情緒？有多強烈？</p>
       <div class="words">${words.map(w => `<button class="pb" data-w="${w}">${w}</button>`).join('')}</div>
       ${fine ? '' : '<p class="hint">再多找一種線索，可以選的詞會更多、更準。</p>'}
-      <p style="margin-top:12px">強度（1 一點點，5 非常強烈）</p>
+      <p style="margin-top:12px">強度：1 是一點點，5 是非常強烈</p>
       <div class="lv">${[1,2,3,4,5].map(i => `<button class="pb" data-l="${i}">${i}</button>`).join('')}</div>`;
     this.panel('說出他的情緒', html, [
       {t:'確定', cls:'pri', id:'nameOk', dis:true, fn:() => { this.closePanel(); this.judge(word, lv); }},
@@ -1115,16 +1216,33 @@ const Game = {
   judge(word, lv){
     const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, who = c.npc;
     cs.tries++;
-    const rank = c.best[v].includes(word) ? 'best' : c.ok[v].includes(word) ? 'ok' : null;
-    if (!rank){
-      const w = c.wrong[word], line = w && typeof w === 'object' ? w[v] : w;
-      this.say([line ? [who, line] : ['sys', `${NAMES[who]}皺了皺眉：「好像不是這樣……」`], ['sys', '再回去多看看線索吧。']], () => this.casePanel());
+    if (c.best[v].includes(word)){ cs.word = word; cs.lv = lv; this.evidencePanel(); return; }
+    if (c.ok[v].includes(word)){ // 方向對但不夠細，不能結案
+      this.say([[who, `是有點${word}……可是不只是這樣。`], ['sys', `「${word}」底下還藏著別的感覺。再多找線索，換一個更準的詞。`]], () => this.casePanel());
       return;
     }
-    cs.named = rank; cs.word = word; cs.typesAtName = Object.keys(cs.found).length; cs.order = shuffle(c.options);
-    const target = c.level[v], lines = [[who, c.right[v]]];
-    if (rank === 'ok') lines.push(['sys', `方向對了。如果用更細的詞，會是「${c.best[v][0]}」。`]);
-    lines.push(['sys', Math.abs(lv - target) <= 1 ? `強度也判斷得很準（${target}）。` : `強度差了一點，他看起來大概是 ${target}。`]);
+    const w = c.wrong[word], line = w && typeof w === 'object' ? w[v] : w;
+    this.say([line ? [who, line] : ['sys', `${NAMES[who]}皺了皺眉：「好像不是這樣……」`], ['sys', '再回去多看看線索吧。']], () => this.casePanel());
+  },
+  evidencePanel(){
+    const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, word = cs.word;
+    const has = cs.clues.some(k => c.evidence[v].includes(k.key));
+    const list = cs.clues.map((k, i) => `<button class="pb wide" data-e="${i}"><span class="tag ${k.type}">${TYPE_NAME[k.type]}</span>${esc(k.text)}</button>`).join('');
+    this.panel(`為什麼是「${word}」？`, `<p>從線索本挑一條最能說明「${esc(word)}」的線索。</p><div class="row">${list}</div>` +
+      (has ? '' : '<p class="hint">你的線索本裡好像還沒有能證明這個情緒的線索，再去找找看。</p>'),
+      [{t:'回去找線索', fn:() => { this.closePanel(); this.casePanel(); }}]);
+    document.querySelectorAll('#pBody [data-e]').forEach(b => b.addEventListener('click', () => { this.closePanel(); this.checkEvidence(cs.clues[+b.dataset.e]); }));
+  },
+  checkEvidence(k){
+    const T = Town.T, c = CASES[T.ci], cs = T.cs, v = cs.v, who = c.npc, word = cs.word;
+    cs.evTries++;
+    if (!c.evidence[v].includes(k.key)){
+      this.say([[who, '這跟那個沒什麼關係吧……'], ['sys', `這條線索說明不了「${word}」。再挑一條，或回去多找線索。`]], () => this.evidencePanel());
+      return;
+    }
+    cs.named = 'best'; cs.typesAtName = Object.keys(cs.found).length; cs.order = shuffle(c.options);
+    const target = c.level[v], lines = [['sys', `證據：${k.text}`], [who, c.right[v]]];
+    lines.push(['sys', Math.abs(cs.lv - target) <= 1 ? `強度也判斷得很準，是 ${target}。` : `強度差了一點，他看起來大概是 ${target}。`]);
     lines.push(['sys', '他聽到你說出來，看起來放鬆了一點。']);
     this.say(lines, () => this.casePanel());
   },
@@ -1135,7 +1253,7 @@ const Game = {
     if (res.fit === 'great'){ (this.methods[card] = this.methods[card] || []).push(o.m); }
     const lines = [['sys', res.r], ['sys', `〔${FIT[res.fit]}〕${o.m}`]].concat(c.close);
     this.learn(c.skill);
-    lines.push(['sys', `學會技能：${c.skillName}（闖關時用得到）`]);
+    lines.push(['sys', `🎁 學會技能「${c.skillName}」，闖關時用得到。`]);
     if (cs.named === 'best'){ Town.T.cards.add(card); lines.push(['sys', `情緒圖鑑新增一張：「${card}」`]); }
     else lines.push(['sys', `這次的情緒還有更細的名字，圖鑑先空著。`]);
     this.say(lines, () => { Town.finishCase(); this.clueCount(); });
@@ -1147,8 +1265,12 @@ const Game = {
     this.say(TUTORIAL.bump, () => this.startStage());
   },
   startStage(){
-    this.mode = 'stage'; $('#ctlTown').hidden = true; $('#ctlStage').hidden = false; $('#hud').hidden = false;
-    reset(); S.running = true; refreshSkills();
+    this.mode = 'stage'; $('#ctlTown').hidden = true; $('#ctlStage').hidden = false; $('#hud').hidden = false; $('#obj').hidden = true;
+    reset(); S.running = true;
+    // 沒學會的技能，對應的關卡直接打開，避免卡關
+    if (!this.skills.has('say')){ S.lit = true; S.litR = 1; }
+    if (!this.skills.has('angle')) S.fr.forEach(f => { f.state = 'bridge'; f.k = 1; setWall(f, false); for (let x = f.bridge[0]; x <= f.bridge[1]; x++) grid[GROUND][x] = 1; });
+    refreshSkills();
     toast('先往右走。碰到生氣怪之前，想想該用哪一招。', 2600);
   },
   stageWon(stats){
@@ -1171,35 +1293,48 @@ const Game = {
     }).join('') + '</div>';
   },
   settle(){
-    this.mode = 'settle'; $('#hud').hidden = true; $('#ctlStage').hidden = true; $('#ctlTown').hidden = true;
-    const T = Town.T, r = T.results;
-    const avg = r.reduce((a, x) => a + x.typesAtName, 0) / Math.max(1, r.length);
+    this.mode = 'settle'; $('#hud').hidden = true; $('#obj').hidden = true; $('#ctlStage').hidden = true; $('#ctlTown').hidden = true;
+    ['#panel'].forEach(id => $(id).classList.remove('on')); $('#dlg').hidden = true; this._dlg = null;
+    const T = Town.T, r = T.results, n = Math.max(1, r.length);
+    const avg = r.reduce((a, x) => a + x.typesAtName, 0) / n;
     const clueLine = avg >= 3.5 ? VERDICT.clue4 : avg >= 2.5 ? VERDICT.clue3 : VERDICT.clue2;
-    const nameLine = r.every(x => x.named === 'best') ? VERDICT.nameBest : VERDICT.nameOk;
-    const great = r.filter(x => x.fit === 'great').length, fitLine = great >= 2 ? VERDICT.fitHigh : VERDICT.fitLow;
-    const rows = r.map((x, i) => { const c = CASES[i]; return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：線索 ${x.typesAtName} 種，陪伴方法「${x.choice}」<span class="fit ${x.fit}">${FIT[x.fit]}</span></p>`; }).join('');
-    const st = this.stageStats, sec = st ? '' : '';
-    $('#settleCard').innerHTML = `<h2>結案報告</h2>
-      <p>你走到社辦門口，發現自己的手已經放開了。</p>
+    const first = r.filter(x => x.tries === 1 && x.evTries === 1).length;
+    const nameLine = first === r.length ? VERDICT.nameBest : VERDICT.nameOk;
+    const great = r.filter(x => x.fit === 'great').length, fitLine = great >= Math.ceil(r.length * .6) ? VERDICT.fitHigh : VERDICT.fitLow;
+    const rows = `<p>完成 <b>${r.length}/3</b> 個委託；第一次就說對情緒和證據：<b>${first}/${r.length}</b> 個</p>` + CASES.map((c, i) => {
+      const x = r.find(y => y.idx === i);
+      if (!x) return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：這次沒處理</p>`;
+      return `<p><span class="tag">委託 ${i+1}</span>${NAMES[c.npc]}：線索 ${x.typesAtName} 種，說了 ${x.tries} 次、挑證據 ${x.evTries} 次，陪伴方法「${x.choice}」<span class="fit ${x.fit}">${FIT[x.fit]}</span></p>`; }).join('');
+    const story = this.stageStats ? `<p>你走到社辦門口，發現自己的手已經放開了。</p>
       <p>你在新的一頁寫下：「被撞的時候，我很生氣。後來發現，其實也很丟臉。」</p>
-      <p><span class="who">米亞：</span>歡迎正式加入偵探社。</p>
+      <p><span class="who">米亞：</span>歡迎正式加入偵探社。</p>` :
+      `<p>今天的調查先到這裡。你把找到的線索整理進偵探筆記。</p><p><span class="who">米亞：</span>沒做完的委託不會跑掉，下次再來。</p>`;
+    $('#settleCard').innerHTML = `<h2>結案報告・第三章 生氣</h2>${story}
       <h2 style="margin-top:16px">情緒圖鑑</h2>${this.cardsHtml()}
       <h2 style="margin-top:16px">偵探評語</h2>
       <p>${clueLine}</p><p>${nameLine}</p><p>${fitLine}</p>
       ${rows}
       <p><span class="who">米亞：</span>${VERDICT.last}</p>
       <p class="cite">${CITE}</p>
-      <div class="row"><button class="pb pri" id="againBtn">再玩一次</button></div>`;
+      <div class="row"><button class="pb pri" id="againBtn">選擇章節</button></div>`;
     $('#settle').classList.add('on');
-    $('#againBtn').addEventListener('click', () => this.toTitle());
+    $('#againBtn').addEventListener('click', () => { $('#settle').classList.remove('on'); this.chapterSelect(); });
+  },
+  chapterSelect(){
+    ['#settle','#paused','#panel'].forEach(id => $(id).classList.remove('on')); $('#dlg').hidden = true; this._dlg = null;
+    this.mode = 'title'; this.paused = false; $('#titleScr').classList.remove('on');
+    $('#chList').innerHTML = CHAPTERS.map(c => `<button class="chc${c.ready ? '' : ' soon'}" id="ch${c.n}" ${c.ready ? '' : 'disabled'}>
+      <span class="che">${c.emoji}</span><b>第${'一二三四五'[c.n-1]}章</b><span class="chn">${c.name}</span><small>${c.words}</small><i>${c.ready ? '可以玩' : '製作中'}</i></button>`).join('');
+    CHAPTERS.filter(c => c.ready).forEach(c => $('#ch' + c.n).addEventListener('click', () => { $('#chapters').classList.remove('on'); this.begin(); }));
+    $('#chapters').classList.add('on');
   },
   toTitle(){
-    ['#settle','#paused','#panel'].forEach(id => $(id).classList.remove('on')); $('#dlg').hidden = true; this._dlg = null;
+    ['#settle','#paused','#panel','#chapters'].forEach(id => $(id).classList.remove('on')); $('#dlg').hidden = true; this._dlg = null;
     this.mode = 'title'; this.paused = false; $('#titleScr').classList.add('on');
   },
   begin(){
     this.skills = new Set(); this.methods = {}; this.stageStats = null; this.book = false;
-    $('#titleScr').classList.remove('on'); $('#ctlTown').hidden = false; $('#ctlStage').hidden = true; $('#hud').hidden = true;
+    $('#titleScr').classList.remove('on'); $('#obj').hidden = false; $('#ctlTown').hidden = false; $('#ctlStage').hidden = true; $('#hud').hidden = true;
     S = null; Town.reset(); this.mode = 'town'; this.objective(); this.clueCount(); refreshSkills();
     this.say(TUTORIAL.opening, () => { Town.T.step = 'shelf'; this.objective(); });
   },
@@ -1221,11 +1356,16 @@ const Game = {
    入口：觸控、鍵盤、縮放
    ========================================================= */
 const cvEl = document.getElementById('cv');
+function layoutFor(w, h){ return w < h ? 'tall' : (w / h > 1.9 && h < 640) ? 'wide' : 'normal'; }
 function fit(){
-  const s = Math.min(innerWidth / VW, (innerHeight - 100) / VH);
+  const L = layoutFor(innerWidth, innerHeight);
+  document.body.className = 'L-' + L; Game.layout = L;
+  const box = $('#screen'), bw = box.clientWidth, bh = box.clientHeight;
+  const s = Math.max(.5, Math.min(bw / VW, bh / VH));
   cvEl.style.width = Math.floor(VW*s) + 'px'; cvEl.style.height = Math.floor(VH*s) + 'px';
 }
 addEventListener('resize', fit);
+if (window.ResizeObserver) new ResizeObserver(() => fit()).observe($('#screen'));
 cvEl.addEventListener('pointerdown', e => {
   if (Game.mode !== 'town' || Game.paused) return;
   const r = cvEl.getBoundingClientRect();
@@ -1245,6 +1385,7 @@ const KEYS = {ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right'};
 addEventListener('keydown', e => {
   if (Game.mode === 'town' && !Game.paused){
     if (Game._dlg && (e.key === ' ' || e.key === 'Enter')){ Game._next(); return; }
+    if (!$('#panel').classList.contains('on') && (e.key === ' ' || e.key === 'Enter')){ Town.lookNearby(); return; }
     const d = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]}[e.key];
     if (d){ const [x,y] = Town.tileOf(); Town.goTo(x + d[0], y + d[1]); }
     return;
@@ -1263,8 +1404,10 @@ function togglePause(force){
 $('#pauseBtn').addEventListener('click', () => togglePause());
 $('#resumeBtn').addEventListener('click', () => togglePause(false));
 $('#restartBtn').addEventListener('click', () => { togglePause(false); Game.toTitle(); });
-$('#startBtn').addEventListener('click', () => Game.begin());
+$('#startBtn').addEventListener('click', () => Game.chapterSelect());
+$('#chBack').addEventListener('click', () => { $('#chapters').classList.remove('on'); Game.toTitle(); });
 $('#notesBtn').addEventListener('click', () => { if (Game.mode === 'town' && !Game._dlg) Game.showNotes(); });
+$('#lookBtn').addEventListener('click', () => { if (Game.mode === 'town' && !Game.paused && !Game._dlg) Town.lookNearby(); });
 $('#bookBtn').addEventListener('click', () => { if (Game.mode === 'town' && !Game._dlg) Game.showBook(); });
 if (typeof IMG_SRC !== 'undefined' && IMG_SRC.title) $('#titleScr').style.backgroundImage = `url(${IMG_SRC.title})`;
 
@@ -1284,7 +1427,7 @@ function render(){
 }
 function loop(now){
   acc += Math.min(.1, (now - last)/1000); last = now;
-  try { while (acc >= DT){ tick(DT); acc -= DT; } render(); if (Game.mode === 'stage') refreshSkills(); }
+  try { while (acc >= DT){ tick(DT); acc -= DT; } render(); if (Game.mode === 'stage') refreshSkills(); else Game.updateLook(); }
   catch (err){ $('#err').textContent = '錯誤代碼 E1：' + err.message; throw err; }
   requestAnimationFrame(loop);
 }

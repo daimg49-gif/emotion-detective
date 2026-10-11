@@ -12,6 +12,13 @@ const LOOKS = {
   kai:  {hair:'#222', style:'cap', top:'#8D99AE', cap:'#EF233C'},
   jie:  {hair:'#3a2a22', style:'short', top:'#f2f2ee', stripe:'#5a6b8a'},
 };
+const CHAPTERS = [
+  {n:1, name:'開心', emoji:'😊', words:'興奮、得意、自豪、感激、放心', ready:false},
+  {n:2, name:'難過', emoji:'😢', words:'失望、寂寞、委屈、捨不得', ready:false},
+  {n:3, name:'生氣', emoji:'😠', words:'不公平、挫折、被冒犯、丟臉', ready:true},
+  {n:4, name:'害怕', emoji:'😨', words:'緊張、擔心、焦慮', ready:false},
+  {n:5, name:'討厭', emoji:'😒', words:'噁心、不耐煩、嫉妒、尷尬', ready:false},
+];
 const NAMES = {mia:'米亞', radio:'📻 米亞', bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑', me:'我'};
 const TYPE_NAME = {face:'表情', body:'身體', talk:'話語', scene:'情境'};
 const BASE_WORDS = ['生氣','難過','害怕','開心'];
@@ -40,7 +47,7 @@ const TUTORIAL = {
     ['mia','至少找到兩種線索，才能判斷是什麼情緒。找越多，判斷越準。'],
     ['mia','送你第一招。不管遇到什麼事，先吸氣數到四，再慢慢吐氣。'],
     ['sys','學會技能：深呼吸'],
-    ['mia','今天有三個委託。走廊的公布欄上有，自己去看吧！'],
+    ['mia','今天有三個委託，都貼在走廊的公布欄。想先做哪件都可以，做完一件就能決定要不要收工。'],
   ],
   bump: [
     ['sys','你抱著寫滿線索的偵探筆記走回社辦。'],
