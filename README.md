@@ -2,31 +2,53 @@
 
 莒光國小資優班的「認識情緒」像素風遊戲，給三到六年級學生用平板玩，一輪約 20 分鐘。
 
-- 設計綱要與文字腳本：放在協作中心 [game-dev-lab](https://github.com/daimg49-gif/game-dev-lab) 的 `docs/specs/`
-- 目前進度：第三章「生氣」的文字腳本等 Pei 確認；終章闖關原型 v2 完成（已換上 ChatGPT 畫的怪物、背景、主視覺）
+- 線上遊玩（開啟 GitHub Pages 後）：https://daimg49-gif.github.io/emotion-detective/
+- 設計綱要與文字腳本：協作中心 [game-dev-lab](https://github.com/daimg49-gif/game-dev-lab) 的 `docs/specs/`
+- 目前版本：第三章「生氣」完整版 v1（序章教學、3 個委託、闖關、結算）
 
 ## 檔案
 
 | 路徑 | 內容 |
 |---|---|
-| `prototype/stage_v3.html` | 終章闖關原型（單一 HTML，直接用瀏覽器打開就能玩） |
-| `tests/test_stage.js` | 自動測試：三種螢幕尺寸通關、技能機制、無 JS 錯誤 |
-| `tests/test_bypass.js` | 檢查不用技能能不能硬闖過去 |
-| `assets/raw/` | ChatGPT 生的原始圖（主視覺、生氣怪、挫折怪、闖關背景），Claude 處理後放進遊戲 |
+| `index.html` | 目前上線的遊戲（與最新版號檔案相同） |
+| `情緒偵探社_v1.html` | 第三章完整版 v1，單一 HTML，圖片已內嵌 |
+| `src/parts/head.html` | 頁面外殼與樣式 |
+| `src/parts/content.js` | **內容表**：角色、序章、3 個委託的線索與選項、圖鑑、評語、地圖配置。改文字只改這裡 |
+| `src/parts/town.js` | 校園地圖：點地圖移動、調查、委託流程 |
+| `src/parts/game.js` | 主控：對話、面板、闖關切換、結算 |
+| `src/stage.html` | 闖關引擎（也可單獨打開試玩） |
+| `tools/build_game.py` | 組出完整遊戲：`python3 tools/build_game.py 情緒偵探社_vN.html` |
+| `tools/build.py` | 組出單獨的闖關試玩版 |
+| `prototype/` | 闖關原型 v1～v3 |
+| `assets/raw/` | ChatGPT 生的原始圖；`assets/game/` 是裁切縮小後給遊戲用的圖 |
+| `tests/` | 自動測試 |
 
-## 回歸測試清單（闖關）
+## 回歸測試清單
 
-每次修改後全部要過：
+整章（`tests/test_game.js`，iPad 兩種尺寸＋手機橫向，A/B 版本都跑）：
 
-1. iPad（1024×768、1180×820）與手機橫向（844×390）都能自動通關，沒有 JS 錯誤
-2. 所有按鈕至少 56 像素見方
-3. 硬撞生氣怪會被彈開、情緒條上升；沒冷靜前過不去
-4. 挫折怪的牆跳不過去，只有「換個角度」能變成橋
-5. 暗區沒「說出來」會掉下去，並提示「把感覺說出來」
-6. 用錯技能有對應提示
-7. 情緒條滿了回到最近的旗子，情緒條回到 30
-8. 站著不動時角色不抖動（連續 120 格都在地上）
+1. 序章：拿圖鑑 → 跟米亞說話 → 學會深呼吸
+2. 每個委託：沒線索時不能判斷情緒；找到 3 種以上線索
+3. 說錯情緒會回到調查，不會卡住
+4. 說對情緒後能選陪伴方法，結案學會對應技能（暫停、換個角度、說出來）
+5. 三個委託後要回社辦，走到走廊左邊觸發闖關
+6. 闖關能通過，出現結案報告、圖鑑卡片、評語、研究出處
+7. 「再玩一次」回到開始畫面；全程沒有 JS 錯誤
 
-執行：`NODE_PATH=$(npm root -g) node tests/test_stage.js $PWD/prototype/stage_v3.html /tmp`
+闖關（`tests/test_stage.js`、`tests/test_bypass.js`）：
+
+1. 三種尺寸都能通關；按鈕至少 56 像素見方
+2. 硬撞生氣怪會被彈開；沒冷靜前過不去
+3. 挫折怪的牆跳不過去，只有「換個角度」能變成橋
+4. 暗區沒「說出來」會掉下去
+5. 用錯技能有提示；情緒條滿了回到旗子
+6. 站著不動不會抖
+
+執行：
+
+```bash
+NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v1.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_stage.js "$PWD/prototype/stage_v3.html" /tmp
+```
 
 所有角色、情境都是虛構的，遊戲不記錄任何學生資料。

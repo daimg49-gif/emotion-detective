@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>情緒偵探社</title>
+<style>
+/* 版面：上方是 480×272 像素畫面，下方固定 100px 操作列；對話、面板疊在畫面上 */
+:root{
+  color-scheme:dark;
+  --ink:#2B2D42; --mist:#8D99AE; --paper:#EDF2F4; --red:#EF233C; --orange:#F4A261;
+  --yellow:#E9C46A; --green:#2A9D8F; --violet:#7B6D8D; --pink:#F2B5D4; --sky:#8ecae6;
+  --deep:#1b1c2b; --panel:#2B2D42; --panel2:#3a3c56;
+  --f:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --strip:100px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--deep);color:var(--paper);font-family:var(--f);overflow:hidden;
+  touch-action:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+button{font-family:var(--f);color:var(--paper);cursor:pointer}
+button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+#wrap{position:fixed;left:0;right:0;top:0;bottom:var(--strip);display:grid;place-items:center}
+#cv{image-rendering:pixelated;image-rendering:crisp-edges;display:block;background:var(--ink)}
+
+/* 闖關 HUD */
+#hud{position:fixed;left:12px;top:10px;pointer-events:none}
+.hbox{background:rgba(43,45,66,.88);border:3px solid var(--ink);box-shadow:0 0 0 2px var(--mist);border-radius:6px;padding:6px 10px}
+#bar{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+#bar .track{width:160px;height:16px;background:#141522;border:2px solid var(--mist);position:relative}
+#bar .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--yellow),var(--orange),var(--red));transition:width .25s}
+#pauseBtn{position:fixed;right:12px;top:10px;width:56px;height:56px;font-size:22px;font-weight:700;background:rgba(43,45,66,.88);border:3px solid var(--mist);border-radius:8px;z-index:4}
+
+/* 操作列 */
+#controls{position:fixed;left:0;right:0;bottom:0;height:var(--strip);background:#141522;border-top:3px solid var(--ink);padding:0 14px;padding-bottom:env(safe-area-inset-bottom,0px)}
+.strip{height:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ctl{display:flex;gap:12px}
+.btn{touch-action:none;width:72px;height:72px;border-radius:12px;border:3px solid var(--mist);background:rgba(43,45,66,.82);font:700 28px var(--f);display:grid;place-items:center}
+.btn.on{background:rgba(233,196,106,.55);border-color:var(--yellow)}
+#jump{width:84px;height:84px;border-radius:50%;font-size:22px;border-color:var(--yellow)}
+#skills{display:flex;gap:10px}
+.sk{touch-action:none;position:relative;width:88px;height:62px;border-radius:10px;border:3px solid var(--mist);background:rgba(43,45,66,.86);font:700 16px var(--f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden}
+.sk i{font-style:normal;font-size:20px;line-height:1}
+.sk .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);height:0}
+.sk.locked{opacity:.3}
+.sk[data-k=breath]{border-color:var(--sky)}.sk[data-k=pause]{border-color:var(--yellow)}
+.sk[data-k=angle]{border-color:var(--violet)}.sk[data-k=say]{border-color:var(--pink)}
+.tb{min-width:112px;height:64px;border-radius:10px;border:3px solid var(--mist);background:var(--panel);font:700 18px var(--f);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px}
+.tb b{color:var(--yellow);font-variant-numeric:tabular-nums}
+#obj{flex:1;min-width:0;text-align:center;font-size:19px;font-weight:700;color:var(--yellow);line-height:1.35}
+#obj small{display:block;font-size:14px;font-weight:400;color:var(--mist)}
+
+/* 提示 */
+#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);max-width:min(92vw,560px);background:rgba(43,45,66,.95);
+  border:3px solid var(--yellow);border-radius:8px;padding:10px 16px;font-size:19px;line-height:1.5;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
+#toast.on{opacity:1}
+
+/* 對話框 */
+#dlg{position:fixed;left:0;right:0;bottom:calc(var(--strip) + 10px);display:flex;justify-content:center;padding:0 14px;z-index:7}
+.dbox{width:min(760px,100%);background:#1f2133;border:4px solid var(--mist);border-radius:10px;box-shadow:0 5px 0 #0d0e18;padding:14px 18px 10px;cursor:pointer}
+#dname{font-size:17px;font-weight:700;color:var(--yellow);min-height:1.2em}
+#dname.inner{color:var(--sky)}
+#dtext{font-size:21px;line-height:1.65;margin-top:4px;min-height:3.3em}
+#dtext.sys{color:#c9cfdc;font-size:19px}
+.dnext{text-align:right;font-size:13px;color:var(--mist);margin-top:2px}
+
+/* 面板 */
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,21,34,.8);padding:16px;z-index:8}
+.ov.on{display:flex}
+.card{width:min(680px,100%);max-height:100%;overflow-y:auto;background:var(--panel);border:4px solid var(--mist);border-radius:10px;padding:20px 24px;box-shadow:0 6px 0 #0d0e18;overscroll-behavior:contain;touch-action:pan-y}
+.card h2{margin:0 0 10px;font-size:26px;color:var(--yellow);text-wrap:balance}
+.card p{font-size:19px;line-height:1.7;margin:6px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pb{min-height:58px;padding:8px 18px;font:700 19px var(--f);border-radius:10px;border:3px solid var(--mist);background:var(--panel2);text-align:left;line-height:1.4}
+.pb.pri{border-color:var(--yellow);background:#6b5520}
+.pb.wide{width:100%}
+.pb[disabled]{opacity:.35}
+.pb.got{border-color:var(--green)}
+.who{color:var(--pink);font-weight:700}
+.tag{display:inline-block;font-size:14px;padding:1px 8px;border-radius:4px;background:var(--panel2);color:var(--mist);margin-right:6px;vertical-align:2px}
+.tag.face{background:#6b5520;color:#fff}.tag.body{background:#2c5168;color:#fff}.tag.talk{background:#7a3a52;color:#fff}.tag.scene{background:#3e5a42;color:#fff}
+.words{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px}
+.words .pb{text-align:center;padding:8px}
+.pb.sel{border-color:var(--yellow);background:#6b5520}
+.lv{display:flex;gap:8px;margin-top:8px}
+.lv .pb{width:58px;text-align:center;padding:0}
+.hint{font-size:16px;color:var(--mist);margin:6px 0 0}
+.fit{display:inline-block;font-weight:700;padding:2px 10px;border-radius:6px;font-size:16px}
+.fit.great{background:var(--green)}.fit.ok{background:#8a6d2a}.fit.bad{background:#8a3a3a}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:10px}
+.ecard{background:var(--panel2);border:3px solid var(--mist);border-radius:8px;padding:10px 12px;font-size:15px;line-height:1.6;min-width:0}
+.ecard h3{margin:0 0 4px;font-size:21px;color:var(--yellow)}
+.ecard.none{display:grid;place-items:center;min-height:120px;color:var(--mist);font-size:40px;border-style:dashed}
+.ecard dt{color:var(--mist);font-size:13px}.ecard dd{margin:0 0 4px}
+.cite{font-size:13px;color:var(--mist);line-height:1.6;margin-top:14px}
+
+/* 開始畫面 */
+#titleScr{background:var(--ink) center/cover no-repeat;align-items:flex-start;padding-top:6vh;z-index:9}
+.tcard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.eyebrow{margin:0;font-size:16px;letter-spacing:.2em;background:rgba(43,45,66,.7);padding:4px 12px;border-radius:4px}
+.gname{margin:0;font-size:clamp(44px,9vw,84px);font-weight:900;color:var(--yellow);letter-spacing:.08em;
+  text-shadow:4px 4px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
+.gsub{margin:0;font-size:22px;font-weight:700;text-shadow:2px 2px 0 var(--ink)}
+#startBtn{margin-top:14px;min-height:60px;padding:0 40px;font:700 24px var(--f);border-radius:12px;border:4px solid var(--ink);background:var(--yellow);color:var(--ink);box-shadow:0 5px 0 var(--ink)}
+.credit{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--paper);text-shadow:1px 1px 0 var(--ink)}
+
+#rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--deep);z-index:20;font-size:24px;text-align:center;padding:24px;line-height:1.7}
+@media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
+#err{position:fixed;left:8px;bottom:4px;font-size:12px;color:var(--red);z-index:30}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv" width="480" height="272" aria-label="遊戲畫面"></canvas></div>
+
+<div id="hud" hidden><div class="hbox" id="bar"><span>我的情緒</span><span class="track"><span class="fill" id="barFill"></span></span></div></div>
+<button id="pauseBtn" aria-label="暫停">||</button>
+
+<div id="controls">
+  <div class="strip" id="ctlTown">
+    <button class="tb" id="notesBtn">🔍 線索 <b id="clueN">0/4</b></button>
+    <div id="obj"></div>
+    <button class="tb" id="bookBtn">📖 圖鑑</button>
+  </div>
+  <div class="strip" id="ctlStage" hidden>
+    <div class="ctl">
+      <button class="btn" id="left" aria-label="往左">◀</button>
+      <button class="btn" id="right" aria-label="往右">▶</button>
+    </div>
+    <div id="skills">
+      <button class="sk" data-k="breath"><i>🫁</i>深呼吸<span class="cd"></span></button>
+      <button class="sk" data-k="pause"><i>✋</i>暫停<span class="cd"></span></button>
+      <button class="sk" data-k="angle"><i>🔄</i>換個角度<span class="cd"></span></button>
+      <button class="sk" data-k="say"><i>💬</i>說出來<span class="cd"></span></button>
+    </div>
+    <div class="ctl"><button class="btn" id="jump" aria-label="跳">跳</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="dlg" hidden><div class="dbox" id="dbox"><div id="dname"></div><div id="dtext"></div><div class="dnext">點一下繼續 ▼</div></div></div>
+
+<div class="ov" id="panel"><div class="card"><h2 id="pTitle"></h2><div id="pBody"></div><div class="row" id="pBtns"></div></div></div>
+
+<div class="ov on" id="titleScr">
+  <div class="tcard">
+    <p class="eyebrow">莒光資優班・認識情緒</p>
+    <h1 class="gname">情緒偵探社</h1>
+    <p class="gsub">第三章：生氣</p>
+    <button id="startBtn">開始</button>
+  </div>
+  <p class="credit">角色與情境均為虛構，遊戲不記錄任何學生資料</p>
+</div>
+
+<div class="ov" id="paused"><div class="card">
+  <h2>暫停中</h2>
+  <div class="row"><button class="pb pri" id="resumeBtn">繼續</button><button class="pb" id="restartBtn">回到開始畫面</button></div>
+</div></div>
+
+<div class="ov" id="settle"><div class="card" id="settleCard"></div></div>
+
+<div id="rotate">請把平板橫著拿 ↻</div>
+<div id="err"></div>
