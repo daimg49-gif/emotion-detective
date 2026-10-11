@@ -4,14 +4,14 @@
 
 - 線上遊玩（開啟 GitHub Pages 後）：https://daimg49-gif.github.io/emotion-detective/
 - 設計綱要與文字腳本：協作中心 [game-dev-lab](https://github.com/daimg49-gif/game-dev-lab) 的 `docs/specs/`
-- 目前版本：第三章「生氣」v2（響應式版面：電腦、平板、手機橫直都能玩）
+- 目前版本：第三章「生氣」v3（加「調查」按鈕；對話移除括號補充文字）
 
 ## 檔案
 
 | 路徑 | 內容 |
 |---|---|
 | `index.html` | 目前上線的遊戲（與最新版號檔案相同） |
-| `情緒偵探社_v2.html` | 第三章 v2，響應式版面；v1 保留可退回 |
+| `情緒偵探社_v3.html` | 第三章 v3；v1、v2 保留可退回 |
 | `src/parts/head.html` | 頁面外殼與樣式 |
 | `src/parts/content.js` | **內容表**：角色、序章、3 個委託的線索與選項、圖鑑、評語、地圖配置。改文字只改這裡 |
 | `src/parts/town.js` | 校園地圖：點地圖移動、調查、委託流程 |
@@ -34,6 +34,8 @@
 5. 三個委託後要回社辦，走到走廊左邊觸發闖關
 6. 闖關能通過，出現結案報告、圖鑑卡片、評語、研究出處
 7. 「再玩一次」回到開始畫面；全程沒有 JS 錯誤
+8. 走到人旁邊「調查」按鈕會亮並顯示名字，按下去能開始調查；遠離時變暗
+9. 委託內容的對話沒有括號補充文字
 
 版面（`tests/test_layout.js`，9 種螢幕：電腦 1920、筆電 1366、iPad 橫直、手機橫直、小手機）：
 
@@ -54,8 +56,8 @@
 執行：
 
 ```bash
-NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v2.html" /tmp
-NODE_PATH=$(npm root -g) node tests/test_layout.js "$PWD/情緒偵探社_v2.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v3.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_layout.js "$PWD/情緒偵探社_v3.html" /tmp
 NODE_PATH=$(npm root -g) node tests/test_stage.js "$PWD/prototype/stage_v3.html" /tmp
 ```
 

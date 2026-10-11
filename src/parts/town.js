@@ -238,8 +238,31 @@ const Town = (() => {
     if (goal){ const gx = goal[0]*TS + 8 - cx, gy = goal[1]*TS - cy - 22 + Math.round(Math.sin(T.t*5)*2);
       if (gx > -8 && gx < VW+8 && gy > -16 && gy < VH) { O(gx-3, gy, 7, 4, '#E9C46A'); R(gx-1, gy+4, 3, 3, '#E9C46A'); R(gx-1, gy+5, 3, 2, '#2B2D42'); R(gx, gy+4, 1, 3, '#E9C46A'); } }
   }
-  function tap(px, py){ if (!T || T.busy) return; goTo(Math.floor((px + T.cam.x)/TS), Math.floor((py + T.cam.y)/TS)); }
+  function tap(px, py){
+    if (!T || T.busy) return;
+    const wx = px + T.cam.x, wy = py + T.cam.y;
+    let tx = Math.floor(wx/TS), ty = Math.floor(wy/TS);
+    if (!entAt(tx, ty)){ // 點偏一點也算點到人或東西，角色小也點得到
+      let best = null, bd = 14;
+      entsNow().filter(usable).forEach(e => e.tiles.forEach(([x,y]) => { const d = Math.hypot(x*TS+8 - wx, y*TS+8 - wy); if (d < bd){ bd = d; best = [x,y]; } }));
+      if (best){ tx = best[0]; ty = best[1]; }
+    }
+    goTo(tx, ty);
+  }
+  // 可以調查的東西：人、有說明文字的物件、公布欄、書架，以及這個委託的線索
+  function usable(e){
+    const c = T.step === 'case' ? CASES[T.ci] : null;
+    return !!(e.npc || e.flavor || e.id === 'board' || (c && c.entClues[e.id]));
+  }
+  function nearby(){
+    if (!T || T.step === 'stage') return null;
+    const [x,y] = tileOf(), c = T.step === 'case' ? CASES[T.ci] : null;
+    const rank = e => e.main ? 0 : (c && c.entClues[e.id]) ? 1 : e.npc ? 2 : 3;
+    return entsNow().filter(e => usable(e) && e.tiles.some(([a,b]) => Math.abs(a-x) + Math.abs(b-y) <= 1))
+      .sort((a,b) => rank(a) - rank(b))[0] || null;
+  }
+  function lookNearby(){ if (!T || T.busy || T.path.length) return false; const e = nearby(); if (!e) return false; face(e); act(e); return true; }
 
-  return { reset, update, draw, tap, goTo, startCase, addClue, finishCase, rebuildBlock, entsNow,
+  return { reset, update, draw, tap, goTo, nearby, lookNearby, startCase, addClue, finishCase, rebuildBlock, entsNow,
     get T(){ return T; }, tileOf };
 })();

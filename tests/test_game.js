@@ -15,6 +15,9 @@ async function run(browser, vp, variant){
   const clickBtn = async (txt) => { await page.locator('#pBtns button', {hasText: txt}).first().click(); };
 
   await page.screenshot({path:`${out}/${tag}-title.png`});
+  const paren = await ev(() => { const G = window.__GAME, bad = []; const walk = (o) => { if (typeof o === 'string'){ if (/[（）()]/.test(o)) bad.push(o.slice(0,20)); } else if (o && typeof o === 'object') Object.values(o).forEach(walk); }; walk(G.CASES); return bad; });
+  ok(`${tag} 對話沒有括號補充文字`, !paren.length, paren.join(' / '));
+  ok(`${tag} 一開始調查按鈕是暗的`, await page.isDisabled('#lookBtn'));
   await page.click('#startBtn');
   await ev(v => window.__GAME.Game.forceVariant = [v, v, v], variant);
   await advance();
@@ -28,8 +31,14 @@ async function run(browser, vp, variant){
   for (let i = 0; i < 3; i++){
     const c = cases[i], p = c.pos[variant];
     ok(`${tag} 委託 ${i+1} 開始`, await ev(() => window.__GAME.Town.T.ci) === i);
-    // 先看主角色兩種線索
-    await walk(p.x, p.y); await page.waitForSelector('#panel.on');
+    // 先看主角色兩種線索：委託 1 走到旁邊後用「調查」按鈕，其餘直接點人
+    if (i === 0){
+      await ev(([x,y]) => { const T = window.__GAME.Town; const spots = [[x,y+1],[x-1,y],[x+1,y],[x,y-1]]; for (const [a,b] of spots){ if (T.goTo(a,b)) return; } }, [p.x, p.y]);
+      await ev(() => window.__GAME.step(400)); await page.waitForTimeout(400);
+      ok(`${tag} 走到大熊旁邊，調查按鈕亮起`, !(await page.isDisabled('#lookBtn')) && /大熊/.test(await page.textContent('#lookName')));
+      await page.click('#lookBtn');
+    } else await walk(p.x, p.y);
+    await page.waitForSelector('#panel.on');
     const disabledBefore = await page.locator('#pBtns button', {hasText:'說出他的情緒'}).isDisabled();
     ok(`${tag} 委託 ${i+1} 沒線索時不能判斷`, disabledBefore);
     await clickBtn('看他的表情'); await advance(); await clickBtn('看他的動作'); await advance();

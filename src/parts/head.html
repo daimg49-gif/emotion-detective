@@ -33,7 +33,9 @@ button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
 #controls{grid-area:ctl;background:#141522;border-top:3px solid var(--ink);padding:0 14px;min-width:0}
 .strip{height:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ctl{display:flex;gap:12px}
-#townHint{flex:1;min-width:0;text-align:center;font-size:15px;color:var(--mist)}
+#lookBtn{flex-direction:column;gap:0;min-width:150px;border-color:var(--yellow);background:#6b5520;font-size:20px;line-height:1.2}
+#lookBtn small{font-size:13px;font-weight:400;color:var(--paper);max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lookBtn[disabled]{border-color:var(--mist);background:var(--panel);opacity:.55}
 
 body.L-normal #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) 100px;grid-template-areas:"top" "screen" "ctl"}
 
@@ -44,7 +46,7 @@ body.L-wide #notesBtn{align-self:center}
 body.L-wide #skills{grid-area:right;align-self:start;justify-self:center;display:grid;grid-template-columns:repeat(2,auto);margin-top:12px}
 body.L-wide #ctlJump,body.L-wide #bookBtn{grid-area:right;align-self:end;justify-self:center;margin-bottom:14px}
 body.L-wide #bookBtn{align-self:center}
-body.L-wide #townHint{display:none}
+body.L-wide #lookBtn{grid-area:right;align-self:end;justify-self:center;margin-bottom:14px;min-width:150px}
 body.L-wide #dtext{font-size:17px;min-height:0}
 body.L-wide .dbox{padding:8px 12px 6px}
 
@@ -58,7 +60,9 @@ body.L-tall #skills{grid-area:sk;display:grid;grid-template-columns:repeat(4,min
 body.L-tall .sk{width:auto}
 body.L-tall #ctlMove{grid-area:mv}
 body.L-tall #ctlJump{grid-area:jp}
-body.L-tall #ctlTown{min-height:76px}
+body.L-tall #ctlTown{min-height:76px;gap:8px}
+body.L-tall .tb{min-width:0;flex:1 1 0;padding:0 4px;font-size:15px;white-space:nowrap;gap:3px}
+body.L-tall #lookBtn{flex:1.4 1 0;min-width:0;font-size:18px}
 
 /* 上方資訊列 */
 #hud{flex:none}
@@ -154,8 +158,8 @@ body.L-wide #obj{font-size:15px}body.L-wide #obj small{display:none}
   <section id="talk"><div id="dlg" hidden><div class="dbox" id="dbox"><div id="dname"></div><div id="dtext"></div><div class="dnext">點一下繼續 ▼</div></div></div></section>
   <nav id="controls">
     <div class="strip" id="ctlTown">
-      <button class="tb" id="notesBtn">🔍 線索 <b id="clueN">0/4</b></button>
-      <div id="townHint">點地圖走過去，點人或東西就會調查</div>
+      <button class="tb" id="notesBtn">📝 線索 <b id="clueN">0/4</b></button>
+      <button class="tb" id="lookBtn" disabled>🔎 調查<small id="lookName">走到人或東西旁邊</small></button>
       <button class="tb" id="bookBtn">📖 圖鑑</button>
     </div>
     <div class="strip" id="ctlStage" hidden>

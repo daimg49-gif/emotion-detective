@@ -46,7 +46,7 @@ const Game = {
   /* ----- 進度提示 ----- */
   objective(){
     const T = Town.T, o = $('#obj');
-    const txt = {intro:'聽米亞說明', shelf:'點書架，拿《情緒圖鑑》', mia:'跟米亞說話', board:'到走廊看公布欄', return:'回社辦（走廊最左邊）', stage:''}[T.step];
+    const txt = {intro:'聽米亞說明', shelf:'點書架，拿《情緒圖鑑》', mia:'跟米亞說話', board:'到走廊看公布欄', return:'回社辦，在走廊最左邊', stage:''}[T.step];
     if (T.step === 'case'){ const c = CASES[T.ci]; o.innerHTML = `委託 ${T.ci+1}/3：到${c.place}找${NAMES[c.npc]}<small>點他和周圍的東西找線索，找到 2 種就能判斷情緒</small>`; }
     else o.textContent = txt || '';
   },
@@ -57,6 +57,13 @@ const Game = {
     if (T.step === 'return') return [5,7];
     if (T.step === 'case'){ const p = CASES[T.ci].pos[T.cs.v]; return [p.x, p.y]; }
     return null;
+  },
+  updateLook(){
+    const btn = $('#lookBtn'), T = Town.T;
+    const e = this.mode === 'town' && T && !T.busy && !T.path.length ? Town.nearby() : null;
+    const label = e ? (e.npc ? NAMES[e.npc] : e.name || '這裡') : '走到人或東西旁邊';
+    if (btn.disabled !== !e) btn.disabled = !e;
+    const n = $('#lookName'); if (n.textContent !== label) n.textContent = label;
   },
   clueCount(){ const T = Town.T; const n = T && T.cs ? Object.keys(T.cs.found).length : 0; $('#clueN').textContent = `${n}/4`; },
   bookOn(){ this.book = true; },
@@ -97,7 +104,7 @@ const Game = {
     const html = `<p>${esc(NAMES[c.npc])}現在是什麼情緒？有多強烈？</p>
       <div class="words">${words.map(w => `<button class="pb" data-w="${w}">${w}</button>`).join('')}</div>
       ${fine ? '' : '<p class="hint">再多找一種線索，可以選的詞會更多、更準。</p>'}
-      <p style="margin-top:12px">強度（1 一點點，5 非常強烈）</p>
+      <p style="margin-top:12px">強度：1 是一點點，5 是非常強烈</p>
       <div class="lv">${[1,2,3,4,5].map(i => `<button class="pb" data-l="${i}">${i}</button>`).join('')}</div>`;
     this.panel('說出他的情緒', html, [
       {t:'確定', cls:'pri', id:'nameOk', dis:true, fn:() => { this.closePanel(); this.judge(word, lv); }},
@@ -119,7 +126,7 @@ const Game = {
     cs.named = rank; cs.word = word; cs.typesAtName = Object.keys(cs.found).length; cs.order = shuffle(c.options);
     const target = c.level[v], lines = [[who, c.right[v]]];
     if (rank === 'ok') lines.push(['sys', `方向對了。如果用更細的詞，會是「${c.best[v][0]}」。`]);
-    lines.push(['sys', Math.abs(lv - target) <= 1 ? `強度也判斷得很準（${target}）。` : `強度差了一點，他看起來大概是 ${target}。`]);
+    lines.push(['sys', Math.abs(lv - target) <= 1 ? `強度也判斷得很準，是 ${target}。` : `強度差了一點，他看起來大概是 ${target}。`]);
     lines.push(['sys', '他聽到你說出來，看起來放鬆了一點。']);
     this.say(lines, () => this.casePanel());
   },
@@ -130,7 +137,7 @@ const Game = {
     if (res.fit === 'great'){ (this.methods[card] = this.methods[card] || []).push(o.m); }
     const lines = [['sys', res.r], ['sys', `〔${FIT[res.fit]}〕${o.m}`]].concat(c.close);
     this.learn(c.skill);
-    lines.push(['sys', `學會技能：${c.skillName}（闖關時用得到）`]);
+    lines.push(['sys', `🎁 學會技能「${c.skillName}」，闖關時用得到。`]);
     if (cs.named === 'best'){ Town.T.cards.add(card); lines.push(['sys', `情緒圖鑑新增一張：「${card}」`]); }
     else lines.push(['sys', `這次的情緒還有更細的名字，圖鑑先空著。`]);
     this.say(lines, () => { Town.finishCase(); this.clueCount(); });
@@ -245,6 +252,7 @@ const KEYS = {ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right'};
 addEventListener('keydown', e => {
   if (Game.mode === 'town' && !Game.paused){
     if (Game._dlg && (e.key === ' ' || e.key === 'Enter')){ Game._next(); return; }
+    if (!$('#panel').classList.contains('on') && (e.key === ' ' || e.key === 'Enter')){ Town.lookNearby(); return; }
     const d = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]}[e.key];
     if (d){ const [x,y] = Town.tileOf(); Town.goTo(x + d[0], y + d[1]); }
     return;
@@ -265,6 +273,7 @@ $('#resumeBtn').addEventListener('click', () => togglePause(false));
 $('#restartBtn').addEventListener('click', () => { togglePause(false); Game.toTitle(); });
 $('#startBtn').addEventListener('click', () => Game.begin());
 $('#notesBtn').addEventListener('click', () => { if (Game.mode === 'town' && !Game._dlg) Game.showNotes(); });
+$('#lookBtn').addEventListener('click', () => { if (Game.mode === 'town' && !Game.paused && !Game._dlg) Town.lookNearby(); });
 $('#bookBtn').addEventListener('click', () => { if (Game.mode === 'town' && !Game._dlg) Game.showBook(); });
 if (typeof IMG_SRC !== 'undefined' && IMG_SRC.title) $('#titleScr').style.backgroundImage = `url(${IMG_SRC.title})`;
 
@@ -284,7 +293,7 @@ function render(){
 }
 function loop(now){
   acc += Math.min(.1, (now - last)/1000); last = now;
-  try { while (acc >= DT){ tick(DT); acc -= DT; } render(); if (Game.mode === 'stage') refreshSkills(); }
+  try { while (acc >= DT){ tick(DT); acc -= DT; } render(); if (Game.mode === 'stage') refreshSkills(); else Game.updateLook(); }
   catch (err){ $('#err').textContent = '錯誤代碼 E1：' + err.message; throw err; }
   requestAnimationFrame(loop);
 }

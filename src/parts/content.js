@@ -12,7 +12,7 @@ const LOOKS = {
   kai:  {hair:'#222', style:'cap', top:'#8D99AE', cap:'#EF233C'},
   jie:  {hair:'#3a2a22', style:'short', top:'#f2f2ee', stripe:'#5a6b8a'},
 };
-const NAMES = {mia:'米亞', bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑', me:'我'};
+const NAMES = {mia:'米亞', radio:'📻 米亞', bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑', me:'我'};
 const TYPE_NAME = {face:'表情', body:'身體', talk:'話語', scene:'情境'};
 const BASE_WORDS = ['生氣','難過','害怕','開心'];
 const FINE_WORDS = ['不公平','挫折','被冒犯','丟臉','緊張'];
@@ -32,7 +32,7 @@ const TUTORIAL = {
     ['mia','你就是新社員？歡迎！我們偵探社不找失物，我們找的是心情。'],
     ['mia','學校裡每天都有人不對勁。有人生氣、有人難過，可是他們很少直接說出來。'],
     ['mia','偵探要做三件事：找線索、說出那是什麼情緒、陪他找到適合的方法。'],
-    ['sys','點地圖，角色會自己走過去；點人或東西，就會調查。先去點左上角的書架。'],
+    ['sys','點地圖，角色會自己走過去。走到人或東西旁邊，按下方的「調查」；直接點他們也可以。先去左上角的書架。'],
   ],
   shelf: [['sys','你在書架上找到一本《情緒圖鑑》，裡面還有很多空白頁。'],['sys','左下角的「線索」和右下角的「圖鑑」隨時可以點開看。']],
   mia: [
@@ -60,7 +60,7 @@ const CASES = [
     npcClues:{
       face:{A:'眉頭皺成一團，牙齒咬得很緊，臉漲紅。', B:'嘴巴噘著，眼睛一直盯著地上。'},
       body:{A:'雙手握拳，肩膀一直在抖，站著不動。', B:'坐在場邊，腳一直踢地上的小石頭。'},
-      talk:{A:'（很大聲）「他明明沒打到我！」', B:'（很小聲）「每次都判我出局……」'},
+      talk:{A:'😠「他明明沒打到我！」', B:'😞「每次都判我出局……」'},
     },
     entClues:{
       score:{type:'scene', A:'計分板：紅隊 9、藍隊 10。大熊穿的是紅隊的衣服。', B:'計分板：紅隊 9、藍隊 10。大熊穿的是紅隊的衣服。'},
@@ -84,7 +84,7 @@ const CASES = [
         A:{fit:'bad', r:'大熊一走過去就開始大聲講，小翔也生氣了。'},
         B:{fit:'ok', r:'小翔說球擦到他的袖子。大熊不太服氣，但點了點頭。'}},
     ],
-    close:[['mia','（無線電）很氣的時候，先讓身體停下來。腳停住、手放開，數兩秒。']],
+    close:[['radio','很氣的時候，先讓身體停下來。腳停住、手放開，數兩秒。']],
     skill:'pause', skillName:'暫停',
   },
   { id:'c2', title:'倒了三次的塔', place:'三年級教室', npc:'le',
@@ -119,7 +119,7 @@ const CASES = [
         A:{fit:'bad', r:'「可是就做不到啊！」他眼淚掉下來。'},
         B:{fit:'bad', r:'他嘆一口氣，繼續趴著。'}},
     ],
-    close:[['mia','（無線電）卡住的時候，換個方向看。擋住你的東西，換個角度可能變成墊腳石。']],
+    close:[['radio','卡住的時候，換個方向看。擋住你的東西，換個角度可能變成墊腳石。']],
     skill:'angle', skillName:'換個角度',
   },
   { id:'c3', title:'哭哭葵', place:'五年級走廊', npc:'kui',
@@ -154,8 +154,8 @@ const CASES = [
         B:{fit:'bad', r:'她搖頭往後退：「我不要。」'}},
     ],
     close:[
-      ['mia','（無線電）一樣是被取綽號，有人會氣到想衝過去，有人會想躲起來。看到的不一樣，因為心裡的感覺不一樣。'],
-      ['mia','（無線電）說出「我很生氣」「我覺得很丟臉」，感覺會小一點。這不是我說的，是科學家量出來的。'],
+      ['radio','一樣是被取綽號，有人會氣到想衝過去，有人會想躲起來。看到的不一樣，因為心裡的感覺不一樣。'],
+      ['radio','說出「我很生氣」「我覺得很丟臉」，感覺會小一點。這不是我說的，是科學家量出來的。'],
     ],
     skill:'say', skillName:'說出來',
   },
@@ -171,7 +171,7 @@ const VERDICT = {
   fitLow:'同一個方法，有時有用、有時沒用。差別在對方當下有多激動。',
   last:'今天的三個委託人，下次可能換你需要人陪。到時候，你知道要找誰。',
 };
-const CITE = '「說出來，感覺會小一點」：Lieberman 等人（2007），Psychological Science 18(5)。「不同情緒出現在身體不同部位」：Nummenmaa 等人（2014），PNAS 111(2)。「先處理身體、再處理想法」的方法分類參考 Gross（1998）情緒調節歷程模型。';
+const CITE = '研究出處：說出情緒能讓感覺變小，Lieberman 等人 2007 年發表於 Psychological Science 第 18 卷；不同情緒出現在身體不同部位，Nummenmaa 等人 2014 年發表於 PNAS 第 111 卷；陪伴方法的分類參考 Gross 1998 年的情緒調節歷程模型。';
 
 /* 地圖：40×26 格，每格 16 像素 */
 const MAP = { w:40, h:26, start:[4,4],
@@ -180,18 +180,18 @@ const MAP = { w:40, h:26, start:[4,4],
   doors:[[5,7,'wood'], [32,7,'class'], [10,11,'hall'], [11,11,'hall'], [28,11,'hall'], [29,11,'hall']],
   zones:[ {name:'偵探社社辦', x:1,y:1,w:9,h:6}, {name:'三年級教室', x:27,y:1,w:12,h:6}, {name:'走廊', x:1,y:8,w:38,h:3}, {name:'操場', x:1,y:12,w:38,h:13} ],
   ents:[
-    {id:'shelf', tiles:[[2,1],[3,1]], draw:'shelf', flavor:'書架上都是偵探社的舊檔案。'},
-    {id:'mdesk', tiles:[[6,4]], draw:'desk', flavor:'社長的桌子，上面有一盞小檯燈。'},
+    {id:'shelf', name:'書架', tiles:[[2,1],[3,1]], draw:'shelf', flavor:'書架上都是偵探社的舊檔案。'},
+    {id:'mdesk', name:'社長的桌子', tiles:[[6,4]], draw:'desk', flavor:'社長的桌子，上面有一盞小檯燈。'},
     {id:'mia', npc:'mia', tiles:[[7,2]], expr:'happy'},
-    {id:'board', tiles:[[11,8]], draw:'board'},
-    {id:'photo', tiles:[[13,8]], draw:'photo', flavor:'榮譽榜，貼著上週比賽的照片。'},
-    {id:'sink', tiles:[[21,8],[22,8]], draw:'sink', flavor:'洗手台。'},
-    {id:'bboard', tiles:[[29,1],[30,1],[31,1],[32,1],[33,1]], draw:'blackboard', flavor:'黑板。'},
+    {id:'board', name:'公布欄', tiles:[[11,8]], draw:'board'},
+    {id:'photo', name:'榮譽榜', tiles:[[13,8]], draw:'photo', flavor:'榮譽榜，貼著上週比賽的照片。'},
+    {id:'sink', name:'洗手台', tiles:[[21,8],[22,8]], draw:'sink', flavor:'洗手台。'},
+    {id:'bboard', name:'黑板', tiles:[[29,1],[30,1],[31,1],[32,1],[33,1]], draw:'blackboard', flavor:'黑板。'},
     {id:'desk1', tiles:[[29,3]], draw:'sdesk'}, {id:'desk2', tiles:[[31,3]], draw:'sdesk'}, {id:'desk3', tiles:[[34,3]], draw:'sdesk'},
     {id:'desk4', tiles:[[29,5]], draw:'sdesk'}, {id:'desk5', tiles:[[33,5]], draw:'sdesk'},
-    {id:'trash', tiles:[[37,6]], draw:'trash', flavor:'垃圾桶。'},
-    {id:'sign', tiles:[[4,13]], draw:'sign', flavor:'籃球架旁的公告。'},
-    {id:'score', tiles:[[10,13],[11,13]], draw:'score', flavor:'計分板。'},
+    {id:'trash', name:'垃圾桶', tiles:[[37,6]], draw:'trash', flavor:'垃圾桶。'},
+    {id:'sign', name:'公告', tiles:[[4,13]], draw:'sign', flavor:'籃球架旁的公告。'},
+    {id:'score', name:'計分板', tiles:[[10,13],[11,13]], draw:'score', flavor:'計分板。'},
     {id:'tree1', tiles:[[31,16]], draw:'tree'}, {id:'tree2', tiles:[[35,20]], draw:'tree'}, {id:'tree3', tiles:[[24,22]], draw:'tree'}, {id:'tree4', tiles:[[2,23]], draw:'tree'},
   ],
 };
