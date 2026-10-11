@@ -17,7 +17,7 @@ const Town = (() => {
     if (c){
       const p = c.pos[T.cs.v];
       list.push({id:c.npc, npc:c.npc, tiles:[[p.x,p.y]], expr:p.expr, pose:p.pose, shake:p.shake, main:true});
-      c.extras.forEach(e => list.push({id:e.id, npc:e.id, tiles:[[e.x,e.y]], expr:e.expr, pose:e.pose, line:e.line}));
+      c.extras.filter(e => !e.only || e.only === T.cs.v).forEach(e => list.push({id:e.id, npc:e.id, tiles:[[e.x,e.y]], expr:e.expr, pose:e.pose, line:e.line}));
     }
     return list;
   }
@@ -98,10 +98,12 @@ const Town = (() => {
       if (T.step === 'case'){ Game.say([['sys', `委託單：${c.board}`]]); return; }
     }
     if (c && e.main){ Game.casePanel(); return; }
-    if (c && c.entClues[e.id]){ clue(e.id); return; }
+    if (c && hasClue(c, e.id)){ clue(e.id); return; }
     if (e.npc && e.npc !== 'mia'){ Game.say([[e.npc, e.line || '……']]); return; }
     if (e.flavor) Game.say([['sys', e.flavor]]);
   }
+  // 有些線索只在 A 或 B 版本出現，另一個版本是 null
+  const hasClue = (c, id) => !!(c.entClues[id] && c.entClues[id][T.cs.v]);
   function startCase(i){
     T.ci = i; T.step = 'case';
     T.cs = {v: Math.random() < .5 ? 'A' : 'B', found:{}, clues:[], named:null, tries:0, evTries:0, typesAtName:0, fit:null, choice:null};
@@ -176,6 +178,12 @@ const Town = (() => {
       case 'bed': O(sx+1, sy-2, 14, n*TS, '#EDF2F4'); R(sx+2, sy-1, 12, 6, '#8ecae6'); R(sx+1, sy+n*TS-4, 14, 2, '#8D99AE'); break;
       case 'book': O(sx+3, sy+3, 10, 8, '#c8553d'); R(sx+5, sy+4, 7, 6, '#EDF2F4'); R(sx+6, sy+6, 5, 1, '#8D99AE'); R(sx+6, sy+8, 4, 1, '#8D99AE'); break;
       case 'mini': O(sx+1, sy, 14, 11, '#2f5d4a'); R(sx+3, sy+3, 8, 1, '#EDF2F4'); R(sx+3, sy+6, 5, 1, '#EDF2F4'); R(sx+7, sy+11, 2, 4, '#8a5a34'); break;
+      case 'phone': O(sx+5, sy+4, 6, 9, '#7B6D8D'); R(sx+6, sy+5, 4, 4, '#F2B5D4'); R(sx+6, sy+10, 4, 1, '#EDF2F4'); break;
+      case 'tank': O(sx+1, sy-2, n*TS-2, 13, '#cfe8f2'); R(sx+2, sy+5, n*TS-4, 5, '#8ecae6'); R(sx+6, sy+7, 6, 3, '#8D99AE'); R(sx+1, sy+11, n*TS-2, 2, '#5a6b8a'); break;
+      case 'pot': O(sx+2, sy+2, 12, 11, '#8D99AE'); R(sx+3, sy+3, 10, 3, '#E9C46A'); R(sx+1, sy+5, 1, 3, '#2B2D42'); R(sx+14, sy+5, 1, 3, '#2B2D42'); break;
+      case 'clock': disc(sx+8, sy+5, 6, '#2B2D42'); disc(sx+8, sy+5, 5, '#EDF2F4'); R(sx+8, sy+1, 1, 4, '#2B2D42'); R(sx+8, sy+5, 3, 1, '#EF233C'); break;
+      case 'skates': if (T.cs && T.cs.v === 'B'){ O(sx+5, sy+4, 6, 10, '#8ecae6'); R(sx+6, sy+3, 4, 2, '#2B2D42'); }
+        else { O(sx+2, sy+5, 5, 7, '#3a7bd5'); O(sx+9, sy+5, 5, 7, '#3a7bd5'); R(sx+2, sy+12, 5, 2, '#E9C46A'); R(sx+9, sy+12, 5, 2, '#E9C46A'); } break;
       case 'tree': R(sx+6, sy+8, 4, 8, '#6e452d'); disc(sx+8, sy+2, 9, '#2B2D42'); disc(sx+8, sy+2, 8, '#3f7a3c'); disc(sx+6, sy, 4, '#5fae5a'); break;
     }
   }
@@ -257,12 +265,12 @@ const Town = (() => {
   // 可以調查的東西：人、有說明文字的物件、公布欄、書架，以及這個委託的線索
   function usable(e){
     const c = T.step === 'case' ? CASES[T.ci] : null;
-    return !!(e.npc || e.flavor || e.id === 'board' || (c && c.entClues[e.id]));
+    return !!(e.npc || e.flavor || e.id === 'board' || (c && hasClue(c, e.id)));
   }
   function nearby(){
     if (!T || T.step === 'stage') return null;
     const [x,y] = tileOf(), c = T.step === 'case' ? CASES[T.ci] : null;
-    const rank = e => e.main ? 0 : (c && c.entClues[e.id]) ? 1 : e.npc ? 2 : 3;
+    const rank = e => e.main ? 0 : (c && hasClue(c, e.id)) ? 1 : e.npc ? 2 : 3;
     return entsNow().filter(e => usable(e) && e.tiles.some(([a,b]) => Math.abs(a-x) + Math.abs(b-y) <= 1))
       .sort((a,b) => rank(a) - rank(b))[0] || null;
   }

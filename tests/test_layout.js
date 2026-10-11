@@ -10,7 +10,7 @@ const SIZES = [
   const browser = await chromium.launch(); const res = [];
   const ok = (n, c, i='') => res.push(`${c ? 'PASS' : 'FAIL'} ${n} ${i}`);
   for (const [si, [name0, w, h]] of SIZES.entries()){
-    const ch = [3, 4, 1][si % 3], name = `${name0}-第${ch}章`; // 每種尺寸輪流用不同章節，三章的技能按鈕都會測到
+    const ch = [3, 4, 1, 2, 5][si % 5], name = `${name0}-第${ch}章`; // 每種尺寸輪流用不同章節，五章的技能按鈕都會測到
     const ctx = await browser.newContext({viewport:{width:w, height:h}, hasTouch:true});
     const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message));
     await page.goto('file://' + file);

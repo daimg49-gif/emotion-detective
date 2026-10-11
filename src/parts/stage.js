@@ -3,7 +3,9 @@
    STAGE.level   地形：坑、平台、暗區、檢查點、終點、怪物位置、擋路物
    STAGE.types   會移動的情緒小怪：用哪些技能冷靜（calmBy）
    STAGE.walls   擋路物：用哪個技能打開（openBy），打開後變成橋、樓梯或消失
-   STAGE.skills  這章的四個技能：slow 時間變慢、freeze 站著不動、open 打開擋路物、light 照亮暗區
+   STAGE.skills  這章的四個技能：slow 時間變慢、freeze 站著不動（dur 秒，結束時冷靜小怪或打開擋路物）、
+                 calm 說一句話讓小怪冷靜、open 打開擋路物、light 照亮暗區
+   ghost 擋路物  沒有牆，只是一個太寬的坑（例如積水坑），打開後變成橋
    ========================================================= */
 const TS = 16, VW = 480, VH = 272, ROWS = 17, GROUND = 14;
 /*@ASSETS@*/
@@ -51,7 +53,7 @@ function reset(){
   S.walls.forEach(w => setWall(w, true));
   updateBar(); refreshSkills();
 }
-function setWall(w, on){ const tx = Math.round(w.x/TS); for (let y = GROUND-5; y < GROUND; y++) for (let x = tx-2; x <= tx; x++) grid[y][x] = on ? 2 : 0; }
+function setWall(w, on){ if (STAGE.wallTypes[w.type].ghost) return; const tx = Math.round(w.x/TS); for (let y = GROUND-5; y < GROUND; y++) for (let x = tx-2; x <= tx; x++) grid[y][x] = on ? 2 : 0; }
 const wallMid = w => w.x - 8;
 function openDone(w){
   const tx = Math.round(w.x/TS), wt = STAGE.wallTypes[w.type];
@@ -83,6 +85,8 @@ function calmNear(r, k){
   if (last) toast(last.calmToast, 1400);
   return n;
 }
+function openWall(w){ w.state = 'opening'; w.k = 0; setWall(w, false); burst(wallMid(w), (GROUND-3)*TS, STAGE.wallTypes[w.type].color || COL.violet, 16); }
+function openNear(k){ let n = 0; S.walls.forEach(w => { if (w.state === 'shut' && Math.abs(w.x - S.p.x) < 100 && STAGE.wallTypes[w.type].openBy === k){ openWall(w); n++; } }); return n; }
 function nearTarget(){
   const px = S.p.x;
   const m = S.mons.find(m => m.state !== 'calm' && Math.abs(m.x - px) < 130);
@@ -103,11 +107,15 @@ function useSkill(k){
     S.slowT = 3; S.bar = Math.max(0, S.bar - 15); updateBar(); ring(p.x+5, p.y+8, d.color);
     if (tg && tg.kind === 'mon' && tg.def.calmBy.includes(k)){ S.calmAt = S.t + .9; S.calmKey = k; fit = true; }
   } else if (d.effect === 'freeze'){
-    p.pauseT = 2; p.vx = 0; S.pauseKey = k; ring(p.x+5, p.y+8, d.color);
+    p.pauseT = S.pauseDur = d.dur || 2; p.vx = 0; S.pauseKey = k; ring(p.x+5, p.y+8, d.color);
     if (tg && tg.kind === 'mon' && tg.def.calmBy.includes(k)) fit = true;
+    if (tg && tg.kind === 'wall' && tg.def.openBy === k) fit = true;
+  } else if (d.effect === 'calm'){
+    S.bar = Math.max(0, S.bar - 10); updateBar(); ring(p.x+5, p.y+8, d.color);
+    if (tg && tg.kind === 'mon' && tg.def.calmBy.includes(k)){ S.calmAt = S.t + .6; S.calmKey = k; fit = true; }
   } else if (d.effect === 'open'){
     const w = S.walls.find(w => w.state === 'shut' && Math.abs(w.x - p.x) < 100 && STAGE.wallTypes[w.type].openBy === k);
-    if (w){ w.state = 'opening'; w.k = 0; setWall(w, false); burst(wallMid(w), (GROUND-3)*TS, STAGE.wallTypes[w.type].color || COL.violet, 16); fit = true; }
+    if (w){ openWall(w); fit = true; }
     spin(p.x+5, p.y+8, d.color);
   } else if (d.effect === 'light'){
     S.bar = Math.max(0, S.bar - 10); updateBar();
@@ -145,7 +153,7 @@ function update(dt){
   if (S.calmAt && S.t >= S.calmAt){ S.calmAt = 0; calmNear(130, S.calmKey); }
   if (p.pauseT > 0){
     p.pauseT -= dt; p.vx = 0; S.bar = Math.max(0, S.bar - 6*dt);
-    if (p.pauseT <= 0){ p.pauseT = 0; calmNear(130, S.pauseKey); updateBar(); }
+    if (p.pauseT <= 0){ p.pauseT = 0; calmNear(130, S.pauseKey); openNear(S.pauseKey); updateBar(); }
   } else {
     const dir = (input.right?1:0) - (input.left?1:0);
     if (p.inv < .8) p.vx = dir * RUN;
@@ -161,7 +169,8 @@ function update(dt){
   p.anim += Math.abs(p.vx) * dt;
 
   if (p.y > VH + 20){ S.stats.falls++;
-    S.lastCause = (LEVEL.dark && !S.lit && p.x/TS > LEVEL.dark[0] && p.x/TS < LEVEL.dark[1]) ? 'dark' : 'pit';
+    const pt = p.x/TS, pool = S.walls.find(w => w.state === 'shut' && w.bridge && pt >= w.bridge[0] - 1 && pt <= w.bridge[1] + 1);
+    S.lastCause = (LEVEL.dark && !S.lit && pt > LEVEL.dark[0] && pt < LEVEL.dark[1]) ? 'dark' : pool ? 'wall:' + pool.type : 'pit';
     S.bar = Math.min(95, S.bar + 10); respawn(); toast(hintFor(S.lastCause), 2600); }
 
   LEVEL.checkpoints.forEach(c => { if (!S.cpReached[c] && p.x > c*TS){ S.cpReached[c] = true; S.cp = c; burst(c*TS+4, (GROUND-2)*TS, COL.yellow, 12); } });
@@ -186,7 +195,7 @@ function update(dt){
   // 擋路物：撞到會被彈開，用對技能打開
   S.walls.forEach(w => {
     if (w.state === 'opening'){ w.k = Math.min(1, w.k + dt*1.4); if (w.k >= 1){ w.state = 'open'; openDone(w); } return; }
-    if (w.state !== 'shut') return;
+    if (w.state !== 'shut' || STAGE.wallTypes[w.type].ghost) return;
     if (Math.abs((p.x+p.w/2) - wallMid(w)) < 32 && p.y+p.h > (GROUND-5)*TS) hurt(10, 'wall:' + w.type, p.x < w.x ? 1 : -1);
   });
 
@@ -273,7 +282,7 @@ function drawPlayer(cam){
   P(-4, 2, 8, 6, COL.skin); R(X(-4, 2), top+2, 2, 3, '#3b2a20');
   if (paused) R(X(1, 2), top+5, 2, 1, COL.ink); else R(X(1, 1), top+4, 1, 2, COL.ink);
   P(-5, -1, 9, 3, COL.cap); R(X(3, 4), top+2, 4, 1, COL.cap);
-  if (paused){ g.strokeStyle = COL.yellow; g.lineWidth = 2; g.beginPath(); g.arc(cx, top+7, 13, -Math.PI/2, -Math.PI/2 + Math.PI*2*(1 - p.pauseT/2)); g.stroke(); }
+  if (paused){ g.strokeStyle = COL.yellow; g.lineWidth = 2; g.beginPath(); g.arc(cx, top+7, 13, -Math.PI/2, -Math.PI/2 + Math.PI*2*(1 - p.pauseT/(S.pauseDur || 2))); g.stroke(); }
 }
 function drawMon(m, cam){
   const t = STAGE.types[m.type], im = IMGS[`${t.img}-${m.state}`];
@@ -307,6 +316,14 @@ function drawWall(w, cam){
     for (let y = 0; y < 80; y += 8) for (let x = 0; x < 48; x += 16){ const off = (y/8)%2 ? 8 : 0; R(cx - 24 + x + off - 8, baseY - 80 + y, 15, 7, '#b5654a'); }
     R(cx - 24, baseY - 82, 48, 3, COL.ink);
     g.globalAlpha = 1;
+  } else if (wt.draw === 'puddle'){
+    if (!w.bridge) return;
+    const a = w.bridge[0]*TS - cam, len = (w.bridge[1]-w.bridge[0]+1)*TS;
+    g.globalAlpha = .85; R(a, baseY + 6, len, VH - baseY - 6, '#3a6ea5');
+    for (let i = 0; i < len; i += 12) R(a + i + Math.round(Math.sin(S.t*3 + i)*2), baseY + 9 + (i/12 % 2)*5, 6, 1, '#8ecae6');
+    g.globalAlpha = 1;
+    if (k > 0 && k < 1) for (let i = 0; i < len*k; i += 20) disc(Math.round(a + i + 8), baseY - 2, 4, COL.paper);
+    return;
   } else if (wt.draw === 'door'){
     const lift = Math.round(k*84);
     O(cx - 20, baseY - 80 - lift, 40, 80, '#c98b4f'); R(cx - 16, baseY - 76 - lift, 32, 72, '#a8703c');

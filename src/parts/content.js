@@ -28,11 +28,27 @@ const LOOKS = {
   chun: {hair:'#e8e8e8', style:'cap', top:'#3a7bd5', cap:'#3d4a6b', big:true},
   qing: {hair:'#2a1d18', style:'pony', top:'#f2f2ee'},
   wang: {hair:'#222', style:'short', top:'#3f8f5a', big:true},
+  // 第二章
+  yun:  {hair:'#2a1d18', style:'long', top:'#7B6D8D'},
+  an:   {hair:'#3b2a20', style:'short', top:'#E9C46A'},
+  cheng:{hair:'#1d1d22', style:'buzz', top:'#EF233C'},
+  yu:   {hair:'#2a2420', style:'short', top:'#3f8f5a', glasses:true},
+  // 第五章
+  you:  {hair:'#3b2a20', style:'braids', top:'#F4A261'},
+  cook: {hair:'#222', style:'cap', top:'#f2f2ee', cap:'#f2f2ee', big:true},
+  kid:  {hair:'#222', style:'short', top:'#8ecae6'},
+  ziq:  {hair:'#1d1d22', style:'bob', top:'#3a7bd5'},
+  lily: {hair:'#5a3a22', style:'long', top:'#EF233C'},
+  shan: {hair:'#2a211c', style:'pony', top:'#E9C46A'},
+  liang:{hair:'#222', style:'buzz', top:'#f2f2ee'},
+  passer:{hair:'#3a2a22', style:'short', top:'#8D99AE'},
 };
 const NAMES = {mia:'米亞', radio:'📻 米亞', me:'我',
   bear:'大熊', xiang:'小翔', le:'阿樂', mate:'隔壁同學', kui:'小葵', kai:'阿凱', jie:'阿傑',
   star:'小星', lin:'林老師', dou:'豆豆', nurse:'護理師阿姨', rain:'小雨', zhe:'阿哲',
-  shu:'小樹', aka:'阿卡', mi:'小米', chun:'春伯', qing:'晴晴', wang:'王老師'};
+  shu:'小樹', aka:'阿卡', mi:'小米', chun:'春伯', qing:'晴晴', wang:'王老師',
+  yun:'小芸', an:'小安', cheng:'阿誠', yu:'宇宇',
+  you:'小柚', cook:'打菜阿姨', kid:'排隊的同學', ziq:'子晴', lily:'莉莉', shan:'小珊', liang:'阿亮', passer:'路過的同學'};
 const TYPE_NAME = {face:'表情', body:'身體', talk:'話語', scene:'情境'};
 const BASE_WORDS = ['開心','難過','生氣','害怕','討厭'];
 const FIT = {great:'很適合', ok:'還可以', bad:'不適合'};
@@ -53,6 +69,7 @@ const CARDS = {
   '自豪':{ch:1, body:'臉熱熱的、想分享過程', cause:'努力很久終於做到'},
   '感激':{ch:1, body:'心裡暖暖的、眼眶可能會紅', cause:'別人幫了你'},
   '放心':{ch:1, body:'吐一口氣、肩膀放鬆', cause:'擔心的事解決了'},
+  '難過':{ch:2, body:'眼眶紅、沒力氣、想一個人待著', cause:'失去或得不到在乎的東西'},
   '失望':{ch:2, body:'嘆氣、肩膀垂下來', cause:'期待的事沒發生'},
   '寂寞':{ch:2, body:'發呆、吃不下', cause:'想要有人陪，身邊卻沒有'},
   '委屈':{ch:2, body:'眼眶紅、想說又說不出口', cause:'被誤會、被不公平對待'},
@@ -66,6 +83,7 @@ const CARDS = {
   '緊張':{ch:4, body:'心跳快、手抖、想跑廁所', cause:'某件事就快發生了'},
   '擔心':{ch:4, body:'一直想同一件事、皺眉', cause:'想到以後可能發生的壞事'},
   '焦慮':{ch:4, body:'肚子痛、頭痛、睡不好', cause:'說不太出在怕什麼，但一直不安'},
+  '討厭':{ch:5, body:'皺眉、想推開、想離遠一點', cause:'覺得這個不對勁'},
   '噁心':{ch:5, body:'皺鼻子、摀嘴、往後退', cause:'看到、聞到、吃到不乾淨的東西'},
   '不耐煩':{ch:5, body:'腳點地、敲東西、翻白眼', cause:'等太久、被一直打擾'},
   '嫉妒':{ch:5, body:'一直盯著看、咬嘴唇', cause:'別人有你想要的東西或關係'},

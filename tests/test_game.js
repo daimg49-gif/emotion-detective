@@ -3,7 +3,7 @@
 const { chromium } = require('playwright');
 const [file, out] = process.argv.slice(2);
 const results = []; const ok = (n, c, info='') => results.push(`${c ? 'PASS' : 'FAIL'} ${n} ${info}`);
-const CITE_KEY = {1:/Seligman/, 3:/Lieberman/, 4:/Ramirez/};
+const CITE_KEY = {1:/Seligman/, 2:/Pennebaker/, 3:/Lieberman/, 4:/Ramirez/, 5:/Gilovich/};
 const BASE = ['開心','難過','生氣','害怕','討厭'];
 
 function helpers(page){
@@ -23,8 +23,8 @@ function playStage(){
     const m = s.mons.find(m => m.state !== 'calm' && m.x - p.x > -10 && m.x - p.x < 75);
     const w = s.walls.find(w => w.state === 'shut' && w.x - p.x > 0 && w.x - p.x < 70);
     const tx = Math.floor((p.x + p.w)/TS), feet = Math.floor((p.y + p.h)/TS);
-    if (m && p.ground){ const k = ST.types[m.type].calmBy.find(has); if (k && G.useSkill(k)){ waits = def(k).effect === 'freeze' ? 130 : 70; continue; } }
-    if (w && p.ground){ const k = ST.wallTypes[w.type].openBy; if (G.useSkill(k)){ waits = 60; continue; } }
+    if (m && p.ground){ const k = ST.types[m.type].calmBy.find(has); if (k && G.useSkill(k)){ waits = def(k).effect === 'freeze' ? (def(k).dur || 2)*60 + 15 : 70; continue; } }
+    if (w && p.ground){ const k = ST.wallTypes[w.type].openBy; if (G.useSkill(k)){ waits = def(k).effect === 'freeze' ? (def(k).dur || 2)*60 + 70 : 60; continue; } }
     if (L.dark && !s.lit && tx >= L.dark[0] && tx <= L.dark[1] && G.useSkill(L.dark.by)){ waits = 40; continue; }
     if (p.ground && (!G.solid(tx, feet) || G.solid(Math.floor((p.x + p.w + 3)/TS), feet - 1))){ inp.jumpPressed = true; inp.jump = true; }
     if (!p.ground && p.vy < 0) inp.jump = true;
@@ -42,7 +42,7 @@ async function run(browser, ch, vp, variant){
   const tag = `第${ch}章 ${vp.width}x${vp.height}-${variant}`;
   ok(`${tag} 一開始調查按鈕是暗的`, await page.isDisabled('#lookBtn'));
   await page.click('#startBtn');
-  ok(`${tag} 章節選擇：第${ch}章可以玩、第二章製作中`, await page.isVisible('#chapters.on') && !(await page.isDisabled('#ch' + ch)) && await page.isDisabled('#ch2'));
+  ok(`${tag} 章節選擇：五章都可以玩`, await page.isVisible('#chapters.on') && (await page.locator('#chList button:not([disabled])').count()) === 5);
   await page.click('#ch' + ch);
   await ev(v => window.__GAME.Game.forceVariant = [v, v, v], variant);
   await advance();
@@ -50,7 +50,8 @@ async function run(browser, ch, vp, variant){
   await walk(2, 1); await advance();
   await walk(7, 2); await advance();
   ok(`${tag} 學會深呼吸`, await ev(() => window.__GAME.Game.skills.has('breath')));
-  const cases = await ev(() => window.__GAME.CASES.map(c => ({npc:c.npc, pos:c.pos, ents:Object.keys(c.entClues), wrong:Object.keys(c.wrong), best:c.best, ok:c.ok, level:c.level, evidence:c.evidence})));
+  // 線索物件只算這個版本有內容的（有些線索只在 A 或 B 出現）
+  const cases = await ev(v => window.__GAME.CASES.map(c => ({npc:c.npc, pos:c.pos, ents:Object.keys(c.entClues).filter(k => c.entClues[k][v]), wrong:Object.keys(c.wrong), best:c.best, ok:c.ok, level:c.level, evidence:c.evidence})), variant);
   const ORDER = variant === 'A' ? [1, 0, 2] : [2, 1, 0];
   for (let k = 0; k < 3; k++){
     const i = ORDER[k], c = cases[i], p = c.pos[variant];
@@ -161,13 +162,14 @@ async function runShort(browser){
   st = await stageWith(['breath','pause']);
   ok('第三章闖關 沒學「換個角度」時橋直接搭好', st.walls.every(x => x === 'open') && await ev(() => window.__GAME.solid(68, 14)));
   // 第四章、第一章：只會深呼吸也能過
-  for (const [ch, checks] of [[4, [[43,14,'磚牆後的橋'],[40,11,'樓梯最上層'],[100,14,'第二道橋']]], [1, [[73,14,'得意怪後的橋']]]]){
+  const CN = {1:'一', 2:'二', 4:'四', 5:'五'};
+  for (const [ch, checks] of [[4, [[43,14,'磚牆後的橋'],[40,11,'樓梯最上層'],[100,14,'第二道橋']]], [1, [[73,14,'得意怪後的橋']]], [2, [[43,14,'寂寞怪後的橋'],[69,14,'積水上的紙船']]], [5, [[73,14,'聚光燈後的橋']]]]){
     await ev(n => { const G = window.__GAME.Game; G.toTitle(); G.begin(n); G._dlg = null; document.querySelector('#dlg').hidden = true; }, ch);
     st = await stageWith(['breath']);
-    ok(`第${ch === 4 ? '四' : '一'}章闖關 只會深呼吸時擋路物全部打開`, st.walls.every(x => x === 'open') && st.lit === true, st.walls.join());
-    for (const [x, y, name] of checks) ok(`第${ch === 4 ? '四' : '一'}章闖關 ${name}是實心的`, await ev(([x,y]) => window.__GAME.solid(x, y), [x, y]));
+    ok(`第${CN[ch]}章闖關 只會深呼吸時擋路物全部打開`, st.walls.every(x => x === 'open') && st.lit === true, st.walls.join());
+    for (const [x, y, name] of checks) ok(`第${CN[ch]}章闖關 ${name}是實心的`, await ev(([x,y]) => window.__GAME.solid(x, y), [x, y]));
     const r = await ev(playStage);
-    ok(`第${ch === 4 ? '四' : '一'}章闖關 只會深呼吸也能通過`, r.won, `${r.frames} 格`);
+    ok(`第${CN[ch]}章闖關 只會深呼吸也能通過`, r.won, `${r.frames} 格`);
     await page.waitForTimeout(900);
   }
   ok('提早結算與技能調整 沒有 JS 錯誤', !errs.length, errs.join('|'));
@@ -182,6 +184,10 @@ async function runShort(browser){
   await run(browser, 4, {width:1180, height:820}, 'B');
   await run(browser, 1, {width:844, height:390}, 'A');
   await run(browser, 1, {width:1366, height:768}, 'B');
+  await run(browser, 2, {width:1024, height:768}, 'A');
+  await run(browser, 2, {width:390, height:844}, 'B');
+  await run(browser, 5, {width:1180, height:820}, 'A');
+  await run(browser, 5, {width:844, height:390}, 'B');
   console.log(results.join('\n'));
   const fail = results.filter(r => r.startsWith('FAIL')).length;
   console.log(`\n${results.length - fail} PASS / ${fail} FAIL`);
