@@ -65,7 +65,7 @@ const Town = (() => {
 
   function update(dt){
     T.t += dt;
-    if (T.busy){ return; }
+    if (T.busy){ centerCam(false, dt); return; }
     const p = T.p;
     if (T.path.length){
       const [tx,ty] = T.path[0], gx = tx*TS+8, gy = ty*TS+8, dx = gx - p.x, dy = gy - p.y, d = Math.hypot(dx,dy), s = SPEED*dt;
@@ -80,7 +80,7 @@ const Town = (() => {
     centerCam(false, dt);
   }
   function centerCam(snap, dt){
-    const tx = Math.max(0, Math.min(W*TS - VW, T.p.x - VW/2)), ty = Math.max(0, Math.min(H*TS - VH, T.p.y - VH/2));
+    const tx = Math.max(0, Math.min(W*TS - VW, T.p.x - VW/2)), ty = Math.max(0, Math.min(H*TS - VH, T.p.y - VH/2 + Game.camBias()));
     if (snap){ T.cam.x = tx; T.cam.y = ty; } else { const k = Math.min(1, dt*6); T.cam.x += (tx - T.cam.x)*k; T.cam.y += (ty - T.cam.y)*k; }
   }
 

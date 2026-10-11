@@ -4,14 +4,14 @@
 
 - 線上遊玩（開啟 GitHub Pages 後）：https://daimg49-gif.github.io/emotion-detective/
 - 設計綱要與文字腳本：協作中心 [game-dev-lab](https://github.com/daimg49-gif/game-dev-lab) 的 `docs/specs/`
-- 目前版本：第三章「生氣」完整版 v1（序章教學、3 個委託、闖關、結算）
+- 目前版本：第三章「生氣」v2（響應式版面：電腦、平板、手機橫直都能玩）
 
 ## 檔案
 
 | 路徑 | 內容 |
 |---|---|
 | `index.html` | 目前上線的遊戲（與最新版號檔案相同） |
-| `情緒偵探社_v1.html` | 第三章完整版 v1，單一 HTML，圖片已內嵌 |
+| `情緒偵探社_v2.html` | 第三章 v2，響應式版面；v1 保留可退回 |
 | `src/parts/head.html` | 頁面外殼與樣式 |
 | `src/parts/content.js` | **內容表**：角色、序章、3 個委託的線索與選項、圖鑑、評語、地圖配置。改文字只改這裡 |
 | `src/parts/town.js` | 校園地圖：點地圖移動、調查、委託流程 |
@@ -25,7 +25,7 @@
 
 ## 回歸測試清單
 
-整章（`tests/test_game.js`，iPad 兩種尺寸＋手機橫向，A/B 版本都跑）：
+整章（`tests/test_game.js`，iPad 兩種尺寸、手機橫直、筆電，A/B 版本都跑）：
 
 1. 序章：拿圖鑑 → 跟米亞說話 → 學會深呼吸
 2. 每個委託：沒線索時不能判斷情緒；找到 3 種以上線索
@@ -34,6 +34,13 @@
 5. 三個委託後要回社辦，走到走廊左邊觸發闖關
 6. 闖關能通過，出現結案報告、圖鑑卡片、評語、研究出處
 7. 「再玩一次」回到開始畫面；全程沒有 JS 錯誤
+
+版面（`tests/test_layout.js`，9 種螢幕：電腦 1920、筆電 1366、iPad 橫直、手機橫直、小手機）：
+
+1. 按鈕都在螢幕內、至少 44 像素
+2. 上方資訊列和操作按鈕不蓋住遊戲畫面
+3. 對話框完整顯示；對話時主角不會被對話框擋住
+4. 闖關畫面寬度至少 320 像素；結算按鈕捲得到
 
 闖關（`tests/test_stage.js`、`tests/test_bypass.js`）：
 
@@ -47,7 +54,8 @@
 執行：
 
 ```bash
-NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v1.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_game.js "$PWD/情緒偵探社_v2.html" /tmp
+NODE_PATH=$(npm root -g) node tests/test_layout.js "$PWD/情緒偵探社_v2.html" /tmp
 NODE_PATH=$(npm root -g) node tests/test_stage.js "$PWD/prototype/stage_v3.html" /tmp
 ```
 

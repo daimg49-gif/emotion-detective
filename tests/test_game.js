@@ -96,6 +96,8 @@ async function run(browser, vp, variant){
   await run(browser, {width:1024, height:768}, 'A');
   await run(browser, {width:1180, height:820}, 'B');
   await run(browser, {width:844, height:390}, 'A');
+  await run(browser, {width:390, height:844}, 'B');
+  await run(browser, {width:1366, height:768}, 'A');
   console.log(results.join('\n'));
   await browser.close();
 })();

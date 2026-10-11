@@ -10,7 +10,7 @@ const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 
 const Game = {
-  mode:'title', paused:false, skills:new Set(), book:false, forceVariant:null, methods:{}, stageStats:null, _dlg:null,
+  mode:'title', layout:'normal', paused:false, skills:new Set(), book:false, forceVariant:null, methods:{}, stageStats:null, _dlg:null,
 
   /* ----- 對話 ----- */
   say(lines, done){
@@ -50,6 +50,7 @@ const Game = {
     if (T.step === 'case'){ const c = CASES[T.ci]; o.innerHTML = `委託 ${T.ci+1}/3：到${c.place}找${NAMES[c.npc]}<small>點他和周圍的東西找線索，找到 2 種就能判斷情緒</small>`; }
     else o.textContent = txt || '';
   },
+  camBias(){ return this._dlg && this.layout !== 'tall' ? VH * .22 : 0; },
   goalTile(){
     const T = Town.T;
     if (T.step === 'shelf') return [2,1]; if (T.step === 'mia') return [7,2]; if (T.step === 'board') return [11,8];
@@ -141,7 +142,7 @@ const Game = {
     this.say(TUTORIAL.bump, () => this.startStage());
   },
   startStage(){
-    this.mode = 'stage'; $('#ctlTown').hidden = true; $('#ctlStage').hidden = false; $('#hud').hidden = false;
+    this.mode = 'stage'; $('#ctlTown').hidden = true; $('#ctlStage').hidden = false; $('#hud').hidden = false; $('#obj').hidden = true;
     reset(); S.running = true; refreshSkills();
     toast('先往右走。碰到生氣怪之前，想想該用哪一招。', 2600);
   },
@@ -165,7 +166,7 @@ const Game = {
     }).join('') + '</div>';
   },
   settle(){
-    this.mode = 'settle'; $('#hud').hidden = true; $('#ctlStage').hidden = true; $('#ctlTown').hidden = true;
+    this.mode = 'settle'; $('#hud').hidden = true; $('#obj').hidden = true; $('#ctlStage').hidden = true; $('#ctlTown').hidden = true;
     const T = Town.T, r = T.results;
     const avg = r.reduce((a, x) => a + x.typesAtName, 0) / Math.max(1, r.length);
     const clueLine = avg >= 3.5 ? VERDICT.clue4 : avg >= 2.5 ? VERDICT.clue3 : VERDICT.clue2;
@@ -193,7 +194,7 @@ const Game = {
   },
   begin(){
     this.skills = new Set(); this.methods = {}; this.stageStats = null; this.book = false;
-    $('#titleScr').classList.remove('on'); $('#ctlTown').hidden = false; $('#ctlStage').hidden = true; $('#hud').hidden = true;
+    $('#titleScr').classList.remove('on'); $('#obj').hidden = false; $('#ctlTown').hidden = false; $('#ctlStage').hidden = true; $('#hud').hidden = true;
     S = null; Town.reset(); this.mode = 'town'; this.objective(); this.clueCount(); refreshSkills();
     this.say(TUTORIAL.opening, () => { Town.T.step = 'shelf'; this.objective(); });
   },
@@ -215,11 +216,16 @@ const Game = {
    入口：觸控、鍵盤、縮放
    ========================================================= */
 const cvEl = document.getElementById('cv');
+function layoutFor(w, h){ return w < h ? 'tall' : (w / h > 1.9 && h < 640) ? 'wide' : 'normal'; }
 function fit(){
-  const s = Math.min(innerWidth / VW, (innerHeight - 100) / VH);
+  const L = layoutFor(innerWidth, innerHeight);
+  document.body.className = 'L-' + L; Game.layout = L;
+  const box = $('#screen'), bw = box.clientWidth, bh = box.clientHeight;
+  const s = Math.max(.5, Math.min(bw / VW, bh / VH));
   cvEl.style.width = Math.floor(VW*s) + 'px'; cvEl.style.height = Math.floor(VH*s) + 'px';
 }
 addEventListener('resize', fit);
+if (window.ResizeObserver) new ResizeObserver(() => fit()).observe($('#screen'));
 cvEl.addEventListener('pointerdown', e => {
   if (Game.mode !== 'town' || Game.paused) return;
   const r = cvEl.getBoundingClientRect();
